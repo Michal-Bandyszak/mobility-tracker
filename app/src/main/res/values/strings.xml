@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Mobility Tracker</string>
+    <string name="tab_today">Dzisiaj</string>
+    <string name="tab_calendar">Kalendarz</string>
+    <string name="tab_stats">Statystyki</string>
+    <string name="tab_settings">Ustawienia</string>
+    <string name="notification_channel_id">reminder_channel</string>
+    <string name="notification_channel_name">Przypomnienia treningowe</string>
+</resources>

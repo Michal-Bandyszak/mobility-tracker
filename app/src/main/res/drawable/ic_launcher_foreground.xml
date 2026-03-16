@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Sylwetka człowieka w pozie rozciągania / gwiazdy (symbolizuje mobilność):
+    - głowa (kółko)
+    - tułów
+    - ramiona uniesione ukośnie w górę
+    - nogi rozstawione ukośnie w dół
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Głowa -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,18 m-9,0 a9,9 0 1,0 18,0 a9,9 0 1,0 -18,0"/>
+
+    <!-- Tułów -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="7"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M54,36 L54,66"/>
+
+    <!-- Lewe ramię (uniesione ukośnie w górę-lewo) -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="7"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M54,44 L24,26"/>
+
+    <!-- Prawe ramię (uniesione ukośnie w górę-prawo) -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="7"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M54,44 L84,26"/>
+
+    <!-- Lewa noga (rozstawiona ukośnie w dół-lewo) -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="7"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M54,66 L34,88"/>
+
+    <!-- Prawa noga (rozstawiona ukośnie w dół-prawo) -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="7"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M54,66 L74,88"/>
+
+</vector>
