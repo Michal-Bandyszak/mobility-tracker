@@ -2,8 +2,10 @@ package com.mobilitytracker.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
 @Entity(tableName = "settings")
+@Serializable
 data class UserSettings(
     @PrimaryKey val key: String,
     val value: String
@@ -14,4 +16,10 @@ object SettingsKeys {
     const val REMINDER_HOUR = "reminder_hour"
     const val REMINDER_MINUTE = "reminder_minute"
     const val REMINDER_ENABLED = "reminder_enabled"
+    const val MOBILITY_DAYS = "mobility_days"
+    const val STRENGTH_DAYS = "strength_days"
+    const val MOBILITY_ANCHOR_DATE = "mobility_anchor_date"
+    const val MOBILITY_SESSIONS_AT_ANCHOR = "mobility_sessions_at_anchor"
+    const val STRENGTH_ANCHOR_DATE = "strength_anchor_date"
+    const val STRENGTH_SESSIONS_AT_ANCHOR = "strength_sessions_at_anchor"
 }

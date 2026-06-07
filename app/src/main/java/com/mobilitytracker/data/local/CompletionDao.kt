@@ -25,9 +25,15 @@ interface CompletionDao {
     @Query("SELECT * FROM completions ORDER BY completedAt DESC")
     fun getAllCompletions(): Flow<List<Completion>>
 
+    @Query("SELECT * FROM completions")
+    suspend fun getAllCompletionsSync(): List<Completion>
+
     @Query("SELECT DISTINCT date FROM completions ORDER BY date DESC")
     suspend fun getCompletedDates(): List<String>
 
     @Query("SELECT COUNT(DISTINCT cycleNumber) FROM completions WHERE cycleNumber IN (SELECT cycleNumber FROM completions GROUP BY cycleNumber HAVING COUNT(*) = :cycleLength)")
     fun getCompletedCyclesCount(cycleLength: Int): Flow<Int>
+
+    @Query("DELETE FROM completions")
+    suspend fun deleteAll()
 }

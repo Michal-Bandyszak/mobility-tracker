@@ -8,6 +8,16 @@
 ### Co budujemy
 Natywna aplikacja Android (Kotlin + Jetpack Compose) do śledzenia cyklicznego programu treningowego z mobilności. Program składa się z **17 filmów** oglądanych po 1 dziennie — po zakończeniu cyklu zaczyna się od nowa (bez końca). Aplikacja wyświetla dzienny filmik, wysyła powiadomienia push i prowadzi statystyki realizacji.
 
+### Rozszerzenie: harmonogram i trening siłowy
+Aplikacja została rozszerzona z prostego trackera codziennej mobilności do lokalnego planera treningowego:
+- mobilność i siłownia mają osobne dni tygodnia ustawiane w `SettingsScreen`,
+- mobilność nadal korzysta z 17-elementowego cyklu, ale cykl przesuwa się tylko w wybrane dni mobilności,
+- trening siłowy rotuje między dwoma jednostkami z planu PDF: Dzień 1, Dzień 2, Dzień 1...,
+- logi siłowe są osobną tabelą Room `strength_set_logs`, bo użytkownik wpisuje ciężar i powtórzenia per seria,
+- reset flow usuwa datę startu, ukończenia mobilności i logi siłowe, ale zostawia harmonogram oraz przypomnienia.
+
+Najważniejsza decyzja architektoniczna: nie mieszać ukończeń mobilności z logami siłowymi. Mobilność jest binarna (`done/not done`), a siłownia jest pomiarem serii (`weightKg/reps`). Wspólny model wymusiłby nullable pola i nieczytelne statystyki.
+
 ### Kluczowe wymagania
 - 17 filmów treningowych w cyklu (1 dziennie, cykl się powtarza)
 - Odtwarzanie filmików treningowych (lokalne pliki .mp4 z telefonu/SD card)

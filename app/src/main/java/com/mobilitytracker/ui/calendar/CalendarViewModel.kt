@@ -39,11 +39,9 @@ class CalendarViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            val startDate = workoutRepository.getProgramStartDate()
-            if (startDate != null) {
-                val totalDays = workoutRepository.calculateCurrentDay(startDate, LocalDate.now())
-                    .coerceAtLeast(0)
-                val (todayCycle, todayVideo) = workoutRepository.totalDaysToCycleAndVideo(totalDays)
+            if (workoutRepository.getProgramStartDate() != null) {
+                val (todayCycle, todayVideo) = workoutRepository.getCurrentMobilityPosition(LocalDate.now())
+                    ?: Pair(1, 1)
                 _state.value = _state.value.copy(
                     currentCycle = todayCycle,
                     maxCycle = todayCycle,

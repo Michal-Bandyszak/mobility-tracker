@@ -1,13 +1,17 @@
 # MobilityTracker
 
-Android app for tracking a 17-day cycling mobility training program. Built with Jetpack Compose and modern Android architecture.
+Android app for tracking a scheduled mobility program and a 2-day strength training plan. Built with Jetpack Compose and modern Android architecture.
 
 ## Features
 
-- **Daily workout tracking** — one video per day from a repeating 17-day cycle
+- **Scheduled mobility tracking** — configurable weekdays for a repeating 17-video mobility cycle
+- **Strength training plan** — 2-day gym plan with exercise prescriptions, technique links, and set logging
+- **Set logs** — save weight and completed reps per exercise and set
+- **Training schedule** — choose which weekdays are for mobility and which are for strength training
+- **Flow reset** — reset program start, mobility completions, and strength logs while keeping preferences
 - **Calendar view** — navigate between cycles, see completion history at a glance
 - **Statistics** — animated progress ring, streaks, per-cycle breakdown, category distribution
-- **Daily reminders** — configurable push notifications that survive reboots and app updates
+- **Training reminders** — configurable push notifications that survive reboots and app updates
 - **Quick action** — mark workout as done directly from the notification, without opening the app
 - **Dark mode** — automatic system-based theming with Material 3
 - **Fully offline** — no backend, no account required
@@ -35,7 +39,7 @@ Android app for tracking a 17-day cycling mobility training program. Built with 
 app/src/main/java/com/mobilitytracker/
 ├── data/
 │   ├── local/          # Room database, DAOs
-│   ├── model/          # Entities, workout plan (17 videos)
+│   ├── model/          # Entities, mobility plan, strength plan, schedules
 │   ├── repository/     # Data access layer
 │   └── video/          # MediaStore video URI resolution
 ├── domain/
@@ -79,7 +83,7 @@ cd mobilne-cialo
 
 ### First Launch
 
-On first launch the app asks for a program start date. Choose today to start from day 1, or pick a past date if you've already been training.
+On first launch the app asks for a program start date. Choose today to start from day 1, or pick a past date if you've already been training. Weekday schedules can be changed in Settings.
 
 ## How the 17-Day Cycle Works
 
@@ -89,7 +93,7 @@ currentCycle = (totalDays / 17) + 1
 currentVideo = (totalDays % 17) + 1
 ```
 
-The cycle repeats indefinitely. Statistics track progress across all completed cycles.
+The mobility cycle repeats indefinitely and advances only on selected mobility weekdays. Strength training rotates between Day 1 and Day 2 on selected strength weekdays.
 
 ## Permissions
 

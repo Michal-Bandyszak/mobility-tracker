@@ -22,12 +22,11 @@ class GetStatsUseCase @Inject constructor(
             completionRepository.getAllCompletions(),
             completionRepository.getCompletedCyclesCount()
         ) { allCompletions, completedCyclesCount ->
-            val startDate = workoutRepository.getProgramStartDate() ?: return@combine null
+            workoutRepository.getProgramStartDate() ?: return@combine null
 
             val today = LocalDate.now()
-            val totalDays = workoutRepository.calculateCurrentDay(startDate, today)
-                .coerceAtLeast(0)
-            val (currentCycle, currentVideo) = workoutRepository.totalDaysToCycleAndVideo(totalDays)
+            val (currentCycle, currentVideo) = workoutRepository.getCurrentMobilityPosition(today)
+                ?: Pair(1, 1)
 
             val currentCycleCompletions = allCompletions.filter { it.cycleNumber == currentCycle }
             val currentCycleCompletedCount = currentCycleCompletions.size

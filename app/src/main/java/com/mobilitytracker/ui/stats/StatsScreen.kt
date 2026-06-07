@@ -1,6 +1,13 @@
 package com.mobilitytracker.ui.stats
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.ExperimentalMaterial3Api
+import com.mobilitytracker.data.model.StrengthExerciseDefinition
+import com.mobilitytracker.data.model.StrengthSetLog
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
@@ -47,6 +54,8 @@ import com.mobilitytracker.ui.theme.StreakOrange
 @Composable
 fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
     val stats by viewModel.stats.collectAsStateWithLifecycle()
+    val strengthLogs by viewModel.strengthLogs.collectAsStateWithLifecycle()
+    val allExercises = viewModel.allExercises
 
     Column(
         modifier = Modifier
@@ -96,6 +105,11 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
         // Kategorie
         if (s.categoryStats.isNotEmpty()) {
             CategoryStatsCard(categoryStats = s.categoryStats)
+        }
+
+        // Historia siłowa
+        if (strengthLogs.isNotEmpty()) {
+            StrengthHistoryCard(logs = strengthLogs, exercises = allExercises)
         }
     }
 }
@@ -260,6 +274,108 @@ private fun CategoryStatsCard(categoryStats: Map<String, Int>) {
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.primary
                     )
+                }
+            }
+        }
+    }
+}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun StrengthHistoryCard(
+    logs: List<StrengthSetLog>,
+    exercises: List<StrengthExerciseDefinition>
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var selectedExerciseId by remember { mutableStateOf<String?>(null) }
+
+    val loggedExerciseIds = logs.map { it.exerciseId }.distinct()
+    val availableExercises = exercises.filter { it.id in loggedExerciseIds }
+
+    if (selectedExerciseId == null && availableExercises.isNotEmpty()) {
+        selectedExerciseId = availableExercises.first().id
+    }
+
+    val selectedExercise = availableExercises.find { it.id == selectedExerciseId }
+    val filteredLogs = logs.filter { it.exerciseId == selectedExerciseId }
+    val groupedLogs = filteredLogs.groupBy { it.date }.toSortedMap(reverseOrder())
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = "HISTORIA TRENINGU SIŁOWEGO",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+                OutlinedTextField(
+                    value = selectedExercise?.name ?: "Wybierz ćwiczenie",
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    availableExercises.forEach { exercise ->
+                        DropdownMenuItem(
+                            text = { Text(exercise.name) },
+                            onClick = {
+                                selectedExerciseId = exercise.id
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            groupedLogs.forEach { (date, dailyLogs) ->
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = date,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    dailyLogs.sortedBy { it.setNumber }.forEach { log ->
+                        val parts = mutableListOf<String>()
+                        if (log.weightKg != null) {
+                            val w = if (log.weightKg % 1.0 == 0.0) log.weightKg.toInt().toString() else log.weightKg.toString()
+                            parts.add("$w kg")
+                        }
+                        if (log.reps != null && log.reps > 0) {
+                            parts.add("${log.reps} powt.")
+                        }
+                        if (log.timeSeconds != null && log.timeSeconds > 0) {
+                            parts.add("${log.timeSeconds}s")
+                        }
+                        
+                        val valueText = if (parts.isEmpty()) "Wykonano" else parts.joinToString(" × ")
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(start = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = "Seria ${log.setNumber}", style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                text = valueText,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
                 }
             }
         }

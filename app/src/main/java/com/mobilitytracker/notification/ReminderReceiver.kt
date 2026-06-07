@@ -4,6 +4,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.mobilitytracker.data.model.WORKOUT_PLAN
+import com.mobilitytracker.data.model.getStrengthWorkoutByDay
+import com.mobilitytracker.data.model.isTrainingScheduled
 import com.mobilitytracker.data.repository.CompletionRepository
 import com.mobilitytracker.data.repository.WorkoutRepository
 import dagger.hilt.android.AndroidEntryPoint
@@ -64,18 +66,29 @@ class ReminderReceiver : BroadcastReceiver() {
         NotificationHelper.createChannel(context)
 
         val startDate = workoutRepository.getProgramStartDate() ?: return
-        val totalDays = workoutRepository.calculateCurrentDay(startDate, LocalDate.now())
-            .coerceAtLeast(0)
-        val (cycleNumber, videoOrder) = workoutRepository.totalDaysToCycleAndVideo(totalDays)
+        val today = LocalDate.now()
+        if (today.isBefore(startDate)) return
 
-        if (!completionRepository.isCompleted(cycleNumber, videoOrder)) {
-            val definition = WORKOUT_PLAN.find { it.order == videoOrder } ?: return
+        val mobilityReminder = buildMobilityReminder(startDate, today)
+        val strengthReminder = buildStrengthReminder(startDate, today)
+
+        if (mobilityReminder != null || strengthReminder != null) {
+            val title = when {
+                mobilityReminder != null && strengthReminder != null -> "Czas na trening!"
+                mobilityReminder != null -> "Czas na mobilność!"
+                else -> "Czas na siłownię!"
+            }
+            val workoutTitle = listOfNotNull(
+                mobilityReminder?.title,
+                strengthReminder
+            ).joinToString(" + ")
+
             NotificationHelper.showReminder(
                 context = context,
-                title = "Czas na trening mobilności!",
-                workoutTitle = "Dziś: ${definition.title}",
-                cycleNumber = cycleNumber,
-                videoOrder = videoOrder
+                title = title,
+                workoutTitle = workoutTitle,
+                cycleNumber = mobilityReminder?.cycleNumber,
+                videoOrder = mobilityReminder?.videoOrder
             )
         }
 
@@ -84,4 +97,43 @@ class ReminderReceiver : BroadcastReceiver() {
             alarmScheduler.scheduleDaily(hour, minute)
         }
     }
+
+    private suspend fun buildMobilityReminder(
+        startDate: LocalDate,
+        today: LocalDate
+    ): MobilityReminder? {
+        val mobilityDays = workoutRepository.getMobilityDays()
+        if (!isTrainingScheduled(today, mobilityDays)) return null
+
+        val sessionNumber = workoutRepository.calculateScheduledSessions(startDate, today, mobilityDays)
+        if (sessionNumber <= 0) return null
+
+        val (cycleNumber, videoOrder) = workoutRepository.sessionNumberToCycleAndVideo(sessionNumber)
+        if (completionRepository.isCompleted(cycleNumber, videoOrder)) return null
+
+        val definition = WORKOUT_PLAN.find { it.order == videoOrder } ?: return null
+        return MobilityReminder(
+            title = "Mobilność: ${definition.title}",
+            cycleNumber = cycleNumber,
+            videoOrder = videoOrder
+        )
+    }
+
+    private suspend fun buildStrengthReminder(startDate: LocalDate, today: LocalDate): String? {
+        val strengthDays = workoutRepository.getStrengthDays()
+        if (!isTrainingScheduled(today, strengthDays)) return null
+
+        val sessionNumber = workoutRepository.calculateScheduledSessions(startDate, today, strengthDays)
+        if (sessionNumber <= 0) return null
+
+        val planDay = ((sessionNumber - 1) % 2) + 1
+        val definition = getStrengthWorkoutByDay(planDay) ?: return null
+        return "Siłownia: ${definition.title}"
+    }
+
+    private data class MobilityReminder(
+        val title: String,
+        val cycleNumber: Int,
+        val videoOrder: Int
+    )
 }

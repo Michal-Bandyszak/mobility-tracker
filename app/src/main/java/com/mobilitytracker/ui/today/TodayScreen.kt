@@ -1,6 +1,7 @@
 package com.mobilitytracker.ui.today
 
 import android.content.Intent
+import com.mobilitytracker.data.model.TrackingType
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -27,10 +28,12 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,10 +42,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.mobilitytracker.data.model.CYCLE_LENGTH
+import com.mobilitytracker.data.model.STRENGTH_RESOURCE_LINKS
+import com.mobilitytracker.data.model.StrengthExerciseDefinition
+import com.mobilitytracker.data.model.StrengthSetLog
+import com.mobilitytracker.domain.model.DayWorkout
+import com.mobilitytracker.domain.model.ScheduledStrengthWorkout
 import com.mobilitytracker.ui.theme.StreakOrange
 import java.time.Instant
 import java.time.LocalDate
@@ -51,6 +64,17 @@ import java.time.ZoneId
 @Composable
 fun TodayScreen(viewModel: TodayViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.loadToday()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     AnimatedContent(targetState = state.isLoading, label = "loading") { isLoading ->
         if (isLoading) {
@@ -63,6 +87,9 @@ fun TodayScreen(viewModel: TodayViewModel = hiltViewModel()) {
             TodayContent(
                 state = state,
                 onToggle = { viewModel.toggleCompletion() },
+                onSaveStrengthSet = { exerciseId, setNumber, weight, reps, time ->
+                    viewModel.saveStrengthSet(exerciseId, setNumber, weight, reps, time)
+                },
                 onRefresh = { viewModel.loadToday() }
             )
         }
@@ -70,9 +97,14 @@ fun TodayScreen(viewModel: TodayViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun TodayContent(state: TodayUiState, onToggle: () -> Unit, onRefresh: () -> Unit) {
-    val context = LocalContext.current
-    val workout = state.workout ?: return
+private fun TodayContent(
+    state: TodayUiState,
+    onToggle: () -> Unit,
+    onSaveStrengthSet: (String, Int, Double?, Int?, Int?) -> Unit,
+    onRefresh: () -> Unit
+) {
+    val mobilityWorkout = state.mobilityWorkout
+    val strengthWorkout = state.strengthWorkout
 
     Column(
         modifier = Modifier
@@ -81,6 +113,77 @@ private fun TodayContent(state: TodayUiState, onToggle: () -> Unit, onRefresh: (
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        Text(
+            text = "DZISIAJ",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+
+        if (mobilityWorkout != null) {
+            MobilityWorkoutCard(
+                workout = mobilityWorkout,
+                onToggle = onToggle,
+                onRefresh = onRefresh
+            )
+        } else {
+            NoTrainingCard(
+                title = "Mobilność",
+                description = "Dziś nie ma zaplanowanej mobilności według ustawionego harmonogramu."
+            )
+        }
+
+        if (strengthWorkout != null) {
+            StrengthWorkoutCard(
+                workout = strengthWorkout,
+                logs = state.strengthLogs,
+                onSaveSet = onSaveStrengthSet
+            )
+        } else {
+            NoTrainingCard(
+                title = "Siłownia",
+                description = "Dziś nie ma zaplanowanego treningu siłowego."
+            )
+        }
+
+        if (mobilityWorkout == null && strengthWorkout == null) {
+            NoTrainingCard(
+                title = "Dzień wolny",
+                description = "Możesz odpocząć albo zrobić opcjonalne rozciąganie z planu."
+            )
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                if (state.completedCycles > 0) {
+                    Text(
+                        text = "Ukończone cykle: ${state.completedCycles}",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+                if (state.currentStreak > 1) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Seria: ${state.currentStreak} dni z rzędu",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = StreakOrange,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MobilityWorkoutCard(workout: DayWorkout, onToggle: () -> Unit, onRefresh: () -> Unit) {
+    val context = LocalContext.current
+
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -183,33 +286,279 @@ private fun TodayContent(state: TodayUiState, onToggle: () -> Unit, onRefresh: (
                 }
             }
         }
+    }
+}
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            )
+@Composable
+private fun StrengthWorkoutCard(
+    workout: ScheduledStrengthWorkout,
+    logs: Map<String, StrengthSetLog>,
+    onSaveSet: (String, Int, Double?, Int?, Int?) -> Unit
+) {
+    val context = LocalContext.current
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                if (state.completedCycles > 0) {
-                    Text(
-                        text = "Ukończone cykle: ${state.completedCycles}",
-                        style = MaterialTheme.typography.bodyLarge
+            Text(
+                text = workout.definition.title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "Sesja siłowa ${workout.sessionNumber} • ${workout.definition.focus}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            HorizontalDivider()
+
+            Text(
+                text = "Przed treningiem: 3-5 min cardio, rozgrzewka dynamiczna i seria wstępna 8-10 powtórzeń z około 50% ciężaru roboczego.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            STRENGTH_RESOURCE_LINKS.forEach { link ->
+                OutlinedButton(
+                    onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link.url)))
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(link.title)
+                }
+            }
+
+            workout.definition.exercises.forEach { exercise ->
+                StrengthExerciseCard(
+                    exercise = exercise,
+                    logs = logs,
+                    onSaveSet = onSaveSet
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StrengthExerciseCard(
+    exercise: StrengthExerciseDefinition,
+    logs: Map<String, StrengthSetLog>,
+    onSaveSet: (String, Int, Double?, Int?, Int?) -> Unit
+) {
+    val context = LocalContext.current
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = exercise.section.uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = exercise.name,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = buildExercisePrescription(exercise),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (exercise.notes.isNotBlank()) {
+                Text(
+                    text = exercise.notes,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            if (exercise.videoUrl != null) {
+                OutlinedButton(
+                    onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(exercise.videoUrl)))
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Zobacz technikę")
+                }
+            }
+
+            HorizontalDivider()
+
+            (1..exercise.sets).forEach { setNumber ->
+                val log = logs[strengthLogKey(exercise.id, setNumber)]
+                StrengthSetLogRow(
+                    exercise = exercise,
+                    setNumber = setNumber,
+                    log = log,
+                    onSaveSet = onSaveSet
+                )
+            }
+        }
+    }
+}
+@Composable
+private fun StrengthSetLogRow(
+    exercise: StrengthExerciseDefinition,
+    setNumber: Int,
+    log: StrengthSetLog?,
+    onSaveSet: (String, Int, Double?, Int?, Int?) -> Unit
+) {
+    val exerciseId = exercise.id
+    val trackingType = exercise.trackingType
+    
+    var weightText by remember(log?.weightKg, exerciseId, setNumber) {
+        mutableStateOf(log?.weightKg?.let { formatWeight(it) } ?: "")
+    }
+    var repsText by remember(log?.reps, exerciseId, setNumber) {
+        mutableStateOf(log?.reps?.toString() ?: "")
+    }
+    var timeText by remember(log?.timeSeconds, exerciseId, setNumber) {
+        mutableStateOf(log?.timeSeconds?.toString() ?: "")
+    }
+    
+    val isCompleted = log != null
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Seria $setNumber",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Medium
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            when (trackingType) {
+                TrackingType.WEIGHT_AND_REPS -> {
+                    OutlinedTextField(
+                        value = weightText,
+                        onValueChange = { weightText = it },
+                        label = { Text("kg") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = repsText,
+                        onValueChange = { repsText = it },
+                        label = { Text("powt.") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f)
                     )
                 }
-                if (state.currentStreak > 1) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = "Seria: ${state.currentStreak} dni z rzędu",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = StreakOrange,
-                        fontWeight = FontWeight.Medium
+                TrackingType.REPS_ONLY -> {
+                    OutlinedTextField(
+                        value = repsText,
+                        onValueChange = { repsText = it },
+                        label = { Text("powt.") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f)
                     )
+                }
+                TrackingType.TIME_ONLY -> {
+                    OutlinedTextField(
+                        value = timeText,
+                        onValueChange = { timeText = it },
+                        label = { Text("czas (s)") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                TrackingType.NONE -> {
+                    // Żadnych dodatkowych pól tekstowych
+                    Spacer(Modifier.weight(1f))
+                }
+            }
+
+            if (trackingType == TrackingType.NONE) {
+                Checkbox(
+                    checked = isCompleted,
+                    onCheckedChange = { checked ->
+                        if (checked) {
+                            onSaveSet(exerciseId, setNumber, 0.0, 0, 0)
+                        } else {
+                            onSaveSet(exerciseId, setNumber, null, null, null)
+                        }
+                    }
+                )
+                Text(
+                    text = if (isCompleted) "Zrobione!" else "Zaznacz",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                )
+            } else {
+                OutlinedButton(
+                    onClick = { 
+                        val weight = weightText.replace(',', '.').trim().toDoubleOrNull()
+                        val reps = repsText.trim().toIntOrNull()
+                        val time = timeText.trim().toIntOrNull()
+                        // Ensure we always save *something* (like 0) if nothing was parsed, or just save nulls. 
+                        // But if we pass all nulls, it will DELETE the log.
+                        // So if user leaves fields empty but clicks "Zapisz", maybe we want to save them as 0 if they want to explicitly save an empty set.
+                        // For now, let's just pass parsed values.
+                        if (weight != null || reps != null || time != null) {
+                            onSaveSet(exerciseId, setNumber, weight, reps, time)
+                        }
+                    }
+                ) {
+                    Text(if (isCompleted) "Aktualizuj" else "Zapisz")
                 }
             }
         }
     }
 }
+
+@Composable
+private fun NoTrainingCard(title: String, description: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+private fun buildExercisePrescription(exercise: StrengthExerciseDefinition): String {
+    val parts = mutableListOf("${exercise.sets} x ${exercise.reps}")
+    if (exercise.tempo.isNotBlank()) parts += "tempo ${exercise.tempo}"
+    if (exercise.rir.isNotBlank()) parts += exercise.rir
+    exercise.restSeconds?.let { parts += "przerwa ${it}s" }
+    return parts.joinToString(" • ")
+}
+
+private fun formatWeight(weight: Double): String =
+    if (weight % 1.0 == 0.0) weight.toInt().toString() else weight.toString()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -231,7 +580,7 @@ private fun OnboardingContent(onStart: (LocalDate) -> Unit) {
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "17-dniowy program mobilności, który powtarza się w nieskończoność. Jeden filmik dziennie.",
+            text = "17-dniowy program mobilności i plan siłowy 2x w tygodniu. Dni treningowe ustawisz w Ustawieniach.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

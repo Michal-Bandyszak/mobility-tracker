@@ -2,9 +2,12 @@ package com.mobilitytracker.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
 import com.mobilitytracker.data.local.AppDatabase
 import com.mobilitytracker.data.local.CompletionDao
 import com.mobilitytracker.data.local.SettingsDao
+import com.mobilitytracker.data.local.StrengthLogDao
+import androidx.sqlite.db.SupportSQLiteDatabase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -16,6 +19,38 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
+    private val MIGRATION_1_2 = object : Migration(1, 2) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `strength_set_logs` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `date` TEXT NOT NULL,
+                    `planDay` INTEGER NOT NULL,
+                    `exerciseId` TEXT NOT NULL,
+                    `setNumber` INTEGER NOT NULL,
+                    `weightKg` REAL,
+                    `reps` INTEGER,
+                    `updatedAt` INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS
+                `index_strength_set_logs_date_planDay_exerciseId_setNumber`
+                ON `strength_set_logs` (`date`, `planDay`, `exerciseId`, `setNumber`)
+                """.trimIndent()
+            )
+        }
+    }
+
+    private val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE strength_set_logs ADD COLUMN timeSeconds INTEGER DEFAULT NULL")
+        }
+    }
+
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
@@ -23,11 +58,14 @@ object AppModule {
             context,
             AppDatabase::class.java,
             "mobility_tracker.db"
-        ).fallbackToDestructiveMigration().build()
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
 
     @Provides
     fun provideCompletionDao(db: AppDatabase): CompletionDao = db.completionDao()
 
     @Provides
     fun provideSettingsDao(db: AppDatabase): SettingsDao = db.settingsDao()
+
+    @Provides
+    fun provideStrengthLogDao(db: AppDatabase): StrengthLogDao = db.strengthLogDao()
 }

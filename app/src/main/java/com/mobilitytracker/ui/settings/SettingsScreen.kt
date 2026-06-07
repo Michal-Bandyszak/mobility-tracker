@@ -4,6 +4,11 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import java.io.InputStreamReader
+import java.io.OutputStreamWriter
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +16,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -39,6 +46,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.DisposableEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import java.time.DayOfWeek
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +54,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showTimePicker by remember { mutableStateOf(false) }
+    var showResetDialog by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     DisposableEffect(lifecycleOwner) {
@@ -58,6 +67,34 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        uri?.let {
+            viewModel.exportData { json ->
+                context.contentResolver.openOutputStream(it)?.use { stream ->
+                    OutputStreamWriter(stream).use { writer ->
+                        writer.write(json)
+                    }
+                }
+                Toast.makeText(context, "Wyeksportowano dane pomyślnie", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            context.contentResolver.openInputStream(it)?.use { stream ->
+                val json = InputStreamReader(stream).readText()
+                viewModel.importData(json) { success ->
+                    if (success) {
+                        Toast.makeText(context, "Zaimporowano pomyślnie. Zrestartuj aplikację.", Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(context, "Błąd importu. Zły format pliku.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
     if (state.isLoading) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -68,6 +105,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -75,6 +113,20 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             text = "Ustawienia",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
+        )
+
+        TrainingDaysCard(
+            title = "Dni mobilności",
+            description = "W te dni aplikacja pokaże kolejny film z 17-dniowego cyklu.",
+            selectedDays = state.mobilityDays,
+            onToggle = { viewModel.toggleMobilityDay(it) }
+        )
+
+        TrainingDaysCard(
+            title = "Dni siłowni",
+            description = "W te dni aplikacja pokaże plan siłowy. Sesje rotują: dzień 1, dzień 2, dzień 1...",
+            selectedDays = state.strengthDays,
+            onToggle = { viewModel.toggleStrengthDay(it) }
         )
 
         Card(modifier = Modifier.fillMaxWidth()) {
@@ -180,6 +232,54 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 }
             }
         }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Reset flow",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "Reset usuwa datę startu, ukończenia mobilności i logi siłowe. Harmonogram dni oraz przypomnienia zostają.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedButton(
+                    onClick = { showResetDialog = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Resetuj flow")
+                }
+            }
+        }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Kopia zapasowa",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "Eksportuj lub importuj historię treningową z pliku. Przydatne przy zmianie telefonu.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedButton(
+                    onClick = { exportLauncher.launch("mobility_tracker_backup.json") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Eksportuj dane do pliku")
+                }
+                OutlinedButton(
+                    onClick = { importLauncher.launch(arrayOf("application/json", "*/*")) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Importuj dane z pliku")
+                }
+            }
+        }
     }
 
     // Dialog z TimePickerem — przyciski zawsze widoczne
@@ -210,4 +310,109 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             }
         )
     }
+
+    if (showResetDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetDialog = false },
+            title = { Text("Resetować flow?") },
+            text = {
+                Text("Po resecie aplikacja wróci do ekranu startu programu. Historia ukończeń i logi serii zostaną usunięte.")
+            },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.resetFlow()
+                    showResetDialog = false
+                }) {
+                    Text("Resetuj")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetDialog = false }) {
+                    Text("Anuluj")
+                }
+            }
+        )
+    }
 }
+
+@Composable
+private fun TrainingDaysCard(
+    title: String,
+    description: String,
+    selectedDays: Set<DayOfWeek>,
+    onToggle: (DayOfWeek) -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(DayOfWeek.values().take(4), DayOfWeek.values().drop(4)).forEach { rowDays ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        rowDays.forEach { day ->
+                            DayToggleButton(
+                                day = day,
+                                selected = day in selectedDays,
+                                onToggle = onToggle,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        repeat(4 - rowDays.size) {
+                            Box(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DayToggleButton(
+    day: DayOfWeek,
+    selected: Boolean,
+    onToggle: (DayOfWeek) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val label = day.shortPolishLabel()
+    if (selected) {
+        Button(
+            onClick = { onToggle(day) },
+            modifier = modifier
+        ) {
+            Text(label)
+        }
+    } else {
+        OutlinedButton(
+            onClick = { onToggle(day) },
+            modifier = modifier
+        ) {
+            Text(label)
+        }
+    }
+}
+
+private fun DayOfWeek.shortPolishLabel(): String =
+    when (this) {
+        DayOfWeek.MONDAY -> "Pn"
+        DayOfWeek.TUESDAY -> "Wt"
+        DayOfWeek.WEDNESDAY -> "Śr"
+        DayOfWeek.THURSDAY -> "Cz"
+        DayOfWeek.FRIDAY -> "Pt"
+        DayOfWeek.SATURDAY -> "So"
+        DayOfWeek.SUNDAY -> "Nd"
+    }

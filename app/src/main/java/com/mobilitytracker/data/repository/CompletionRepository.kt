@@ -41,4 +41,8 @@ class CompletionRepository @Inject constructor(
 
     suspend fun getCompletedDates(): List<String> =
         completionDao.getCompletedDates()
+
+    suspend fun deleteAllCompletions() {
+        completionDao.deleteAll()
+    }
 }

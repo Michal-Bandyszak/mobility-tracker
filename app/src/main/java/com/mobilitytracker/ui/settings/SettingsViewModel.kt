@@ -8,7 +8,9 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mobilitytracker.data.repository.BackupRepository
 import com.mobilitytracker.data.repository.WorkoutRepository
+import com.mobilitytracker.domain.usecase.ResetProgramFlowUseCase
 import com.mobilitytracker.notification.AlarmScheduler
 import com.mobilitytracker.notification.NotificationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 import javax.inject.Inject
 
 data class SettingsUiState(
@@ -25,12 +28,16 @@ data class SettingsUiState(
     val reminderHour: Int = 8,
     val reminderMinute: Int = 0,
     val canScheduleExactAlarms: Boolean = true,
-    val hasNotificationPermission: Boolean = true
+    val hasNotificationPermission: Boolean = true,
+    val mobilityDays: Set<DayOfWeek> = emptySet(),
+    val strengthDays: Set<DayOfWeek> = emptySet()
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val workoutRepository: WorkoutRepository,
+    private val backupRepository: BackupRepository,
+    private val resetProgramFlow: ResetProgramFlowUseCase,
     private val alarmScheduler: AlarmScheduler,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -41,6 +48,8 @@ class SettingsViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val (enabled, hour, minute) = workoutRepository.getReminderSettings()
+            val mobilityDays = workoutRepository.getMobilityDays()
+            val strengthDays = workoutRepository.getStrengthDays()
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             val canSchedule = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 alarmManager.canScheduleExactAlarms()
@@ -55,7 +64,9 @@ class SettingsViewModel @Inject constructor(
                 reminderHour = hour,
                 reminderMinute = minute,
                 canScheduleExactAlarms = canSchedule,
-                hasNotificationPermission = hasNotifPermission
+                hasNotificationPermission = hasNotifPermission,
+                mobilityDays = mobilityDays,
+                strengthDays = strengthDays
             )
         }
     }
@@ -80,9 +91,7 @@ class SettingsViewModel @Inject constructor(
         NotificationHelper.showReminder(
             context = context,
             title = "Test powiadomienia",
-            workoutTitle = "Jeśli to widzisz — powiadomienia działają!",
-            cycleNumber = 0,
-            videoOrder = 0
+            workoutTitle = "Jeśli to widzisz — powiadomienia działają!"
         )
     }
 
@@ -107,6 +116,44 @@ class SettingsViewModel @Inject constructor(
             if (state.reminderEnabled) {
                 alarmScheduler.scheduleDaily(hour, minute)
             }
+        }
+    }
+
+    fun toggleMobilityDay(day: DayOfWeek) {
+        viewModelScope.launch {
+            val current = _state.value.mobilityDays
+            val updated = if (day in current) current - day else current + day
+            workoutRepository.saveMobilityDays(updated)
+            _state.value = _state.value.copy(mobilityDays = updated)
+        }
+    }
+
+    fun toggleStrengthDay(day: DayOfWeek) {
+        viewModelScope.launch {
+            val current = _state.value.strengthDays
+            val updated = if (day in current) current - day else current + day
+            workoutRepository.saveStrengthDays(updated)
+            _state.value = _state.value.copy(strengthDays = updated)
+        }
+    }
+
+    fun resetFlow() {
+        viewModelScope.launch {
+            resetProgramFlow()
+        }
+    }
+
+    fun exportData(onDataReady: (String) -> Unit) {
+        viewModelScope.launch {
+            val json = backupRepository.exportDataToJson()
+            onDataReady(json)
+        }
+    }
+
+    fun importData(json: String, onComplete: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val result = backupRepository.importDataFromJson(json)
+            onComplete(result.isSuccess)
         }
     }
 }

@@ -18,4 +18,10 @@ interface SettingsDao {
 
     @Query("SELECT value FROM settings WHERE `key` = :key LIMIT 1")
     fun observeValue(key: String): Flow<String?>
+
+    @Query("DELETE FROM settings WHERE `key` = :key")
+    suspend fun delete(key: String)
+
+    @Query("SELECT * FROM settings")
+    suspend fun getAllSettings(): List<UserSettings>
 }

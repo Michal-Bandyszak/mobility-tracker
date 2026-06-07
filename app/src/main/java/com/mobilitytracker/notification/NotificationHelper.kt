@@ -20,13 +20,19 @@ object NotificationHelper {
             "Przypomnienia treningowe",
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Codzienne przypomnienie o treningu mobilności"
+            description = "Przypomnienia o mobilności i treningu siłowym"
         }
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(channel)
     }
 
-    fun showReminder(context: Context, title: String, workoutTitle: String, cycleNumber: Int, videoOrder: Int) {
+    fun showReminder(
+        context: Context,
+        title: String,
+        workoutTitle: String,
+        cycleNumber: Int? = null,
+        videoOrder: Int? = null
+    ) {
         val openIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
@@ -35,27 +41,28 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val markDoneIntent = Intent(context, ReminderReceiver::class.java).apply {
-            action = ReminderReceiver.ACTION_MARK_DONE
-            putExtra(ReminderReceiver.EXTRA_CYCLE, cycleNumber)
-            putExtra(ReminderReceiver.EXTRA_VIDEO_ORDER, videoOrder)
-        }
-        val markDonePending = PendingIntent.getBroadcast(
-            context, 1, markDoneIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(title)
             .setContentText(workoutTitle)
             .setContentIntent(openPending)
             .setAutoCancel(true)
-            .addAction(0, "Oznacz jako zrobione", markDonePending)
-            .build()
+
+        if (cycleNumber != null && videoOrder != null) {
+            val markDoneIntent = Intent(context, ReminderReceiver::class.java).apply {
+                action = ReminderReceiver.ACTION_MARK_DONE
+                putExtra(ReminderReceiver.EXTRA_CYCLE, cycleNumber)
+                putExtra(ReminderReceiver.EXTRA_VIDEO_ORDER, videoOrder)
+            }
+            val markDonePending = PendingIntent.getBroadcast(
+                context, 1, markDoneIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(0, "Oznacz jako zrobione", markDonePending)
+        }
 
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(NOTIFICATION_ID, notification)
+        manager.notify(NOTIFICATION_ID, builder.build())
     }
 
     fun cancel(context: Context) {

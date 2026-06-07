@@ -2,11 +2,18 @@ package com.mobilitytracker.data.repository
 
 import com.mobilitytracker.data.local.SettingsDao
 import com.mobilitytracker.data.model.CYCLE_LENGTH
+import com.mobilitytracker.data.model.DEFAULT_MOBILITY_DAYS
+import com.mobilitytracker.data.model.DEFAULT_STRENGTH_DAYS
 import com.mobilitytracker.data.model.SettingsKeys
 import com.mobilitytracker.data.model.UserSettings
 import com.mobilitytracker.data.model.WorkoutDefinition
 import com.mobilitytracker.data.model.WORKOUT_PLAN
+import com.mobilitytracker.data.model.countScheduledSessions
+import com.mobilitytracker.data.model.decodeTrainingDays
+import com.mobilitytracker.data.model.encodeTrainingDays
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
@@ -30,6 +37,10 @@ class WorkoutRepository @Inject constructor(
         settingsDao.upsert(UserSettings(SettingsKeys.PROGRAM_START_DATE, date.toString()))
     }
 
+    suspend fun clearProgramStartDate() {
+        settingsDao.delete(SettingsKeys.PROGRAM_START_DATE)
+    }
+
     fun observeProgramStartDate(): Flow<String?> =
         settingsDao.observeValue(SettingsKeys.PROGRAM_START_DATE)
 
@@ -41,6 +52,117 @@ class WorkoutRepository @Inject constructor(
         val cycleNumber = (totalDays / CYCLE_LENGTH) + 1
         val videoOrder = (totalDays % CYCLE_LENGTH) + 1
         return Pair(cycleNumber, videoOrder)
+    }
+
+    fun sessionNumberToCycleAndVideo(sessionNumber: Int): Pair<Int, Int> =
+        totalDaysToCycleAndVideo((sessionNumber - 1).coerceAtLeast(0))
+
+    suspend fun getMobilityDays(): Set<DayOfWeek> =
+        decodeTrainingDays(settingsDao.getValue(SettingsKeys.MOBILITY_DAYS), DEFAULT_MOBILITY_DAYS)
+
+    suspend fun getStrengthDays(): Set<DayOfWeek> =
+        decodeTrainingDays(settingsDao.getValue(SettingsKeys.STRENGTH_DAYS), DEFAULT_STRENGTH_DAYS)
+
+    suspend fun getMobilityAnchor(): Pair<LocalDate, Int>? {
+        val dateRaw = settingsDao.getValue(SettingsKeys.MOBILITY_ANCHOR_DATE)
+        val sessionsRaw = settingsDao.getValue(SettingsKeys.MOBILITY_SESSIONS_AT_ANCHOR)
+        if (dateRaw != null && sessionsRaw != null) {
+            return Pair(LocalDate.parse(dateRaw), sessionsRaw.toInt())
+        }
+        return null
+    }
+
+    suspend fun getStrengthAnchor(): Pair<LocalDate, Int>? {
+        val dateRaw = settingsDao.getValue(SettingsKeys.STRENGTH_ANCHOR_DATE)
+        val sessionsRaw = settingsDao.getValue(SettingsKeys.STRENGTH_SESSIONS_AT_ANCHOR)
+        if (dateRaw != null && sessionsRaw != null) {
+            return Pair(LocalDate.parse(dateRaw), sessionsRaw.toInt())
+        }
+        return null
+    }
+
+    suspend fun getTotalMobilitySessions(targetDate: LocalDate): Int {
+        val startDate = getProgramStartDate() ?: return 0
+        if (targetDate.isBefore(startDate)) return 0
+        
+        val days = getMobilityDays()
+        val anchor = getMobilityAnchor()
+        
+        if (anchor != null && !targetDate.isBefore(anchor.first)) {
+            val sessionsSinceAnchor = countScheduledSessions(anchor.first.plusDays(1), targetDate, days)
+            return anchor.second + sessionsSinceAnchor
+        } else {
+            return countScheduledSessions(startDate, targetDate, days)
+        }
+    }
+    
+    suspend fun getTotalStrengthSessions(targetDate: LocalDate): Int {
+        val startDate = getProgramStartDate() ?: return 0
+        if (targetDate.isBefore(startDate)) return 0
+        
+        val days = getStrengthDays()
+        val anchor = getStrengthAnchor()
+        
+        if (anchor != null && !targetDate.isBefore(anchor.first)) {
+            val sessionsSinceAnchor = countScheduledSessions(anchor.first.plusDays(1), targetDate, days)
+            return anchor.second + sessionsSinceAnchor
+        } else {
+            return countScheduledSessions(startDate, targetDate, days)
+        }
+    }
+
+    suspend fun saveMobilityDays(days: Set<DayOfWeek>) {
+        val currentDays = getMobilityDays()
+        if (currentDays == days) return
+        
+        val today = LocalDate.now()
+        val startDate = getProgramStartDate()
+        if (startDate != null && !today.isBefore(startDate)) {
+            val sessionsSoFar = getTotalMobilitySessions(today.minusDays(1))
+            settingsDao.upsert(UserSettings(SettingsKeys.MOBILITY_ANCHOR_DATE, today.minusDays(1).toString()))
+            settingsDao.upsert(UserSettings(SettingsKeys.MOBILITY_SESSIONS_AT_ANCHOR, sessionsSoFar.toString()))
+        }
+        
+        settingsDao.upsert(UserSettings(SettingsKeys.MOBILITY_DAYS, encodeTrainingDays(days)))
+    }
+
+    suspend fun saveStrengthDays(days: Set<DayOfWeek>) {
+        val currentDays = getStrengthDays()
+        if (currentDays == days) return
+        
+        val today = LocalDate.now()
+        val startDate = getProgramStartDate()
+        if (startDate != null && !today.isBefore(startDate)) {
+            val sessionsSoFar = getTotalStrengthSessions(today.minusDays(1))
+            settingsDao.upsert(UserSettings(SettingsKeys.STRENGTH_ANCHOR_DATE, today.minusDays(1).toString()))
+            settingsDao.upsert(UserSettings(SettingsKeys.STRENGTH_SESSIONS_AT_ANCHOR, sessionsSoFar.toString()))
+        }
+        
+        settingsDao.upsert(UserSettings(SettingsKeys.STRENGTH_DAYS, encodeTrainingDays(days)))
+    }
+
+    fun observeMobilityDays(): Flow<Set<DayOfWeek>> =
+        settingsDao.observeValue(SettingsKeys.MOBILITY_DAYS)
+            .map { decodeTrainingDays(it, DEFAULT_MOBILITY_DAYS) }
+
+    fun observeStrengthDays(): Flow<Set<DayOfWeek>> =
+        settingsDao.observeValue(SettingsKeys.STRENGTH_DAYS)
+            .map { decodeTrainingDays(it, DEFAULT_STRENGTH_DAYS) }
+
+    fun calculateScheduledSessions(
+        startDate: LocalDate,
+        targetDate: LocalDate,
+        days: Set<DayOfWeek>
+    ): Int = countScheduledSessions(startDate, targetDate, days)
+
+    suspend fun getCurrentMobilityPosition(today: LocalDate = LocalDate.now()): Pair<Int, Int>? {
+        val startDate = getProgramStartDate() ?: return null
+        if (today.isBefore(startDate)) return null
+
+        val sessions = getTotalMobilitySessions(today)
+        if (sessions <= 0) return Pair(1, 1)
+
+        return sessionNumberToCycleAndVideo(sessions)
     }
 
     suspend fun getReminderSettings(): Triple<Boolean, Int, Int> {
