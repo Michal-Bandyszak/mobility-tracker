@@ -68,7 +68,7 @@ class GetStrengthStatsUseCase @Inject constructor(
             latestCompletedTrackedSets = latestSession?.completedTrackedSets ?: 0,
             latestPlannedTrackedSets = latestSession?.plannedTrackedSets ?: 0,
             trackedExercises = exerciseProgress.size,
-            totalLoggedSets = logs.size
+            totalLoggedSets = sessions.sumOf { it.completedTrackedSets }
         )
     }
 
