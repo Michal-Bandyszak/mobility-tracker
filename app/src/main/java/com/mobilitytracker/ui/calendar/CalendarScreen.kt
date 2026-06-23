@@ -43,6 +43,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mobilitytracker.domain.model.DayWorkout
+import com.mobilitytracker.ui.components.ExpressiveHeader
+import com.mobilitytracker.ui.components.ExpressiveScreen
 import com.mobilitytracker.ui.theme.CompletedGreen
 import com.mobilitytracker.ui.theme.TodayAmber
 
@@ -68,72 +70,82 @@ fun CalendarScreen(viewModel: CalendarViewModel = hiltViewModel()) {
         return
     }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Nawigacja między cyklami
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = { viewModel.previousCycle() },
-                    enabled = state.currentCycle > 1
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Poprzedni cykl")
-                }
-
-                Text(
-                    text = "CYKL ${state.currentCycle}",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
+    ExpressiveScreen {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 18.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                ExpressiveHeader(
+                    eyebrow = "Kalendarz",
+                    title = "Historia ruchu",
+                    subtitle = "Cykle mobilności i faktyczne dni treningów siłowych w jednym miejscu."
                 )
+            }
 
-                IconButton(
-                    onClick = { viewModel.nextCycle() },
-                    enabled = state.currentCycle < state.maxCycle
+            // Nawigacja między cyklami
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Następny cykl")
+                    IconButton(
+                        onClick = { viewModel.previousCycle() },
+                        enabled = state.currentCycle > 1
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Poprzedni cykl")
+                    }
+
+                    Text(
+                        text = "CYKL ${state.currentCycle}",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    IconButton(
+                        onClick = { viewModel.nextCycle() },
+                        enabled = state.currentCycle < state.maxCycle
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Następny cykl")
+                    }
                 }
             }
-        }
 
-        // Siatka dni 1-17
-        item {
-            CycleGrid(
-                workouts = state.workouts,
-                todayCycle = state.todayCycle,
-                todayVideoOrder = state.todayVideoOrder,
-                currentCycle = state.currentCycle
-            )
-        }
+            // Siatka dni 1-17
+            item {
+                CycleGrid(
+                    workouts = state.workouts,
+                    todayCycle = state.todayCycle,
+                    todayVideoOrder = state.todayVideoOrder,
+                    currentCycle = state.currentCycle
+                )
+            }
 
-        item {
-            StrengthHistoryCard(entries = state.strengthHistory)
-        }
+            item {
+                StrengthHistoryCard(entries = state.strengthHistory)
+            }
 
-        item {
-            HorizontalDivider()
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "Lista filmów:",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-        }
+            item {
+                HorizontalDivider()
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Lista filmów:",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
-        items(state.workouts) { workout ->
-            WorkoutListItem(
-                workout = workout,
-                isToday = state.currentCycle == state.todayCycle && workout.videoOrder == state.todayVideoOrder,
-                onToggle = { viewModel.toggleCompletion(workout.cycleNumber, workout.videoOrder) },
-                onPlay = workout.videoUri
-            )
+            items(state.workouts) { workout ->
+                WorkoutListItem(
+                    workout = workout,
+                    isToday = state.currentCycle == state.todayCycle && workout.videoOrder == state.todayVideoOrder,
+                    onToggle = { viewModel.toggleCompletion(workout.cycleNumber, workout.videoOrder) },
+                    onPlay = workout.videoUri
+                )
+            }
         }
     }
 }

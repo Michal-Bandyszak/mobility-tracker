@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -56,6 +57,10 @@ import com.mobilitytracker.data.model.StrengthExerciseDefinition
 import com.mobilitytracker.data.model.StrengthSetLog
 import com.mobilitytracker.domain.model.DayWorkout
 import com.mobilitytracker.domain.model.ScheduledStrengthWorkout
+import com.mobilitytracker.ui.components.ExpressiveHeader
+import com.mobilitytracker.ui.components.ExpressivePanel
+import com.mobilitytracker.ui.components.ExpressiveScreen
+import com.mobilitytracker.ui.components.StatusPill
 import com.mobilitytracker.ui.theme.StreakOrange
 import java.time.Instant
 import java.time.LocalDate
@@ -109,77 +114,129 @@ private fun TodayContent(
 ) {
     val mobilityWorkout = state.mobilityWorkout
     val strengthWorkout = state.strengthWorkout
+    val title = when {
+        mobilityWorkout != null && strengthWorkout != null -> "Dzisiaj pełny zestaw"
+        mobilityWorkout != null -> "Dzisiaj mobilność"
+        strengthWorkout != null -> "Dzisiaj siła"
+        else -> "Dzisiaj regeneracja"
+    }
+    val subtitle = when {
+        mobilityWorkout != null && strengthWorkout != null -> "Najpierw rozruszaj ciało, potem przejdź do planu siłowego."
+        mobilityWorkout != null -> "Jeden konkretny blok ruchu wystarczy, żeby utrzymać rytm."
+        strengthWorkout != null -> "Masz aktywny trening siłowy i możesz zmienić T1/T2 jednym tapnięciem."
+        else -> "Dzień bez planu. Możesz odpocząć albo odpalić siłownię ręcznie."
+    }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = "DZISIAJ",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-
-        if (mobilityWorkout != null) {
-            MobilityWorkoutCard(
-                workout = mobilityWorkout,
-                onToggle = onToggle,
-                onRefresh = onRefresh
-            )
-        } else {
-            NoTrainingCard(
-                title = "Mobilność",
-                description = "Dziś nie ma zaplanowanej mobilności według ustawionego harmonogramu."
-            )
-        }
-
-        if (strengthWorkout != null) {
-            StrengthWorkoutCard(
-                workout = strengthWorkout,
-                logs = state.strengthLogs,
-                onSaveSet = onSaveStrengthSet,
-                onChooseStrengthWorkoutToday = onChooseStrengthWorkoutToday
-            )
-        } else {
-            StrengthTodayPickerCard(
-                title = "Siłownia",
-                description = "Dziś nie ma zaplanowanego treningu siłowego, ale możesz zrobić go jednorazowo bez zmiany tygodniowego planu.",
-                selectedPlanDay = null,
-                onChooseStrengthWorkoutToday = onChooseStrengthWorkoutToday
-            )
-        }
-
-        if (mobilityWorkout == null && strengthWorkout == null) {
-            NoTrainingCard(
-                title = "Dzień wolny",
-                description = "Możesz odpocząć albo zrobić opcjonalne rozciąganie z planu."
-            )
-        }
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            )
+    ExpressiveScreen {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 18.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                if (state.completedCycles > 0) {
-                    Text(
-                        text = "Ukończone cykle: ${state.completedCycles}",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-                if (state.currentStreak > 1) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = "Seria: ${state.currentStreak} dni z rzędu",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = StreakOrange,
-                        fontWeight = FontWeight.Medium
-                    )
+            ExpressiveHeader(
+                eyebrow = LocalDate.now().toString(),
+                title = title,
+                subtitle = subtitle
+            )
+
+            TodayPlanPanel(
+                mobilityWorkout = mobilityWorkout,
+                strengthWorkout = strengthWorkout,
+                completedCycles = state.completedCycles,
+                currentStreak = state.currentStreak
+            )
+
+            if (mobilityWorkout != null) {
+                MobilityWorkoutCard(
+                    workout = mobilityWorkout,
+                    onToggle = onToggle,
+                    onRefresh = onRefresh
+                )
+            } else {
+                NoTrainingCard(
+                    title = "Mobilność",
+                    description = "Dziś nie ma zaplanowanej mobilności według ustawionego harmonogramu."
+                )
+            }
+
+            if (strengthWorkout != null) {
+                StrengthWorkoutCard(
+                    workout = strengthWorkout,
+                    logs = state.strengthLogs,
+                    onSaveSet = onSaveStrengthSet,
+                    onChooseStrengthWorkoutToday = onChooseStrengthWorkoutToday
+                )
+            } else {
+                StrengthTodayPickerCard(
+                    title = "Siłownia",
+                    description = "Dziś nie ma zaplanowanego treningu siłowego, ale możesz zrobić go jednorazowo bez zmiany tygodniowego planu.",
+                    selectedPlanDay = null,
+                    onChooseStrengthWorkoutToday = onChooseStrengthWorkoutToday
+                )
+            }
+
+            if (mobilityWorkout == null && strengthWorkout == null) {
+                NoTrainingCard(
+                    title = "Dzień wolny",
+                    description = "Możesz odpocząć albo zrobić opcjonalne rozciąganie z planu."
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TodayPlanPanel(
+    mobilityWorkout: DayWorkout?,
+    strengthWorkout: ScheduledStrengthWorkout?,
+    completedCycles: Int,
+    currentStreak: Int
+) {
+    ExpressivePanel(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                StatusPill(
+                    label = "Mobilność",
+                    value = mobilityWorkout?.let { "C${it.cycleNumber}.${it.videoOrder}" } ?: "wolne",
+                    modifier = Modifier.weight(1f)
+                )
+                StatusPill(
+                    label = "Siła",
+                    value = strengthWorkout?.let { "T${it.planDay}" } ?: "wybierz",
+                    modifier = Modifier.weight(1f),
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+
+            if (completedCycles > 0 || currentStreak > 1) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (completedCycles > 0) {
+                        StatusPill(
+                            label = "Cykle",
+                            value = completedCycles.toString(),
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                    }
+                    if (currentStreak > 1) {
+                        StatusPill(
+                            label = "Seria",
+                            value = "$currentStreak dni",
+                            modifier = Modifier.weight(1f),
+                            color = StreakOrange
+                        )
+                    }
                 }
             }
         }
@@ -214,7 +271,9 @@ private fun MobilityWorkoutCard(workout: DayWorkout, onToggle: () -> Unit, onRef
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(
                 modifier = Modifier.padding(20.dp),
@@ -307,7 +366,9 @@ private fun StrengthWorkoutCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -367,6 +428,7 @@ private fun StrengthTodayPickerCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(
@@ -443,6 +505,7 @@ private fun StrengthExerciseCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(

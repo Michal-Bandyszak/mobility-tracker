@@ -54,6 +54,8 @@ import com.mobilitytracker.domain.model.StrengthSessionSummary
 import com.mobilitytracker.domain.model.StrengthStats
 import com.mobilitytracker.domain.model.StrengthStatsOverview
 import com.mobilitytracker.domain.model.StrengthTrend
+import com.mobilitytracker.ui.components.ExpressiveHeader
+import com.mobilitytracker.ui.components.ExpressiveScreen
 import com.mobilitytracker.ui.theme.CompletedGreen
 import com.mobilitytracker.ui.theme.StreakOrange
 import java.util.Locale
@@ -62,26 +64,21 @@ import java.util.Locale
 fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val strengthStats by viewModel.strengthStats.collectAsStateWithLifecycle()
-    val backgroundBrush = Brush.verticalGradient(
-        listOf(
-            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.32f),
-            MaterialTheme.colorScheme.background,
-            MaterialTheme.colorScheme.background
-        )
-    )
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(backgroundBrush)
-    ) {
+    ExpressiveScreen {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(18.dp),
+                .padding(horizontal = 18.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
+            ExpressiveHeader(
+                eyebrow = "Statystyki",
+                title = "Panel treningu",
+                subtitle = "Najważniejsze sygnały: ostatnia sesja, rytm i ćwiczenia, które realnie idą do przodu."
+            )
+
             StatsHeroCard(strengthStats = strengthStats)
 
             if (stats == null) {
@@ -143,9 +140,9 @@ private fun StatsHeroCard(strengthStats: StrengthStats) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(30.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Column(
             modifier = Modifier
@@ -196,7 +193,7 @@ private fun HeroMetric(label: String, value: String, modifier: Modifier = Modifi
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(contentColor.copy(alpha = 0.10f))
             .padding(12.dp)
     ) {
@@ -275,7 +272,7 @@ private fun StrengthStatsSection(strengthStats: StrengthStats) {
 private fun EmptyStrengthCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(
@@ -300,7 +297,7 @@ private fun EmptyStrengthCard() {
 private fun StrengthOverviewCard(overview: StrengthStatsOverview) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -346,7 +343,7 @@ private fun StrengthOverviewCard(overview: StrengthStatsOverview) {
 private fun ExerciseProgressCard(progress: StrengthExerciseProgress) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -412,7 +409,7 @@ private fun PerformanceBlock(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(
@@ -444,7 +441,7 @@ private fun PerformanceBlock(
 private fun SessionSummaryCard(session: StrengthSessionSummary) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -517,7 +514,7 @@ private fun SectionHeader(title: String, subtitle: String) {
         Box(
             modifier = Modifier
                 .size(width = 5.dp, height = 40.dp)
-                .clip(RoundedCornerShape(999.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.tertiary)
         )
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -544,7 +541,7 @@ private fun MetricCard(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
         tonalElevation = 3.dp
     ) {
@@ -631,7 +628,7 @@ private fun Sparkline(values: List<Double>) {
 private fun ProgressRingCard(stats: CycleStats) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
@@ -701,7 +698,7 @@ private fun ProgressRingCard(stats: CycleStats) {
 private fun CycleBreakdownCard(stats: CycleStats) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -758,7 +755,7 @@ private fun CategoryStatsCard(categoryStats: Map<String, Int>) {
     )
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
