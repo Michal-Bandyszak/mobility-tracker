@@ -246,7 +246,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = "Reset usuwa datę startu, ukończenia mobilności i logi siłowe. Harmonogram dni oraz przypomnienia zostają.",
+                    text = "Reset usuwa datę startu, ukończenia mobilności, logi siłowe i jednorazowe wybory T1/T2. Harmonogram dni oraz przypomnienia zostają.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -321,7 +321,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             onDismissRequest = { showResetDialog = false },
             title = { Text("Resetować flow?") },
             text = {
-                Text("Po resecie aplikacja wróci do ekranu startu programu. Historia ukończeń i logi serii zostaną usunięte.")
+                Text("Po resecie aplikacja wróci do ekranu startu programu. Historia ukończeń, logi serii i jednorazowe wybory T1/T2 zostaną usunięte.")
             },
             confirmButton = {
                 Button(onClick = {

@@ -31,7 +31,7 @@ class GetTodayWorkoutUseCase @Inject constructor(
         if (today.isBefore(startDate)) return Result.ProgramNotStarted
 
         val mobilityWorkout = buildMobilityWorkout(startDate, today)
-        val strengthWorkout = buildStrengthWorkout(startDate, today)
+        val strengthWorkout = buildStrengthWorkout(today)
 
         return Result.Success(
             TodayTrainingPlan(
@@ -60,17 +60,12 @@ class GetTodayWorkoutUseCase @Inject constructor(
         )
     }
 
-    private suspend fun buildStrengthWorkout(
-        startDate: LocalDate,
-        today: LocalDate
-    ): ScheduledStrengthWorkout? {
-        val strengthDays = workoutRepository.getStrengthDays()
-        if (!isTrainingScheduled(today, strengthDays)) return null
+    private suspend fun buildStrengthWorkout(today: LocalDate): ScheduledStrengthWorkout? {
+        val planDay = workoutRepository.getStrengthPlanDayForDate(today) ?: return null
 
         val sessionNumber = workoutRepository.getTotalStrengthSessions(today)
         if (sessionNumber <= 0) return null
 
-        val planDay = workoutRepository.getStrengthPlanDayForDate(today) ?: return null
         val definition = strengthRepository.getWorkoutByDay(planDay) ?: return null
 
         return ScheduledStrengthWorkout(

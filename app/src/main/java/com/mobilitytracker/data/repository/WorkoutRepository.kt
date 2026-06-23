@@ -43,6 +43,15 @@ class WorkoutRepository @Inject constructor(
         settingsDao.delete(SettingsKeys.PROGRAM_START_DATE)
     }
 
+    suspend fun clearProgramFlowSettings() {
+        settingsDao.delete(SettingsKeys.PROGRAM_START_DATE)
+        settingsDao.delete(SettingsKeys.MOBILITY_ANCHOR_DATE)
+        settingsDao.delete(SettingsKeys.MOBILITY_SESSIONS_AT_ANCHOR)
+        settingsDao.delete(SettingsKeys.STRENGTH_ANCHOR_DATE)
+        settingsDao.delete(SettingsKeys.STRENGTH_SESSIONS_AT_ANCHOR)
+        clearStrengthPlanOverrides()
+    }
+
     fun observeProgramStartDate(): Flow<String?> =
         settingsDao.observeValue(SettingsKeys.PROGRAM_START_DATE)
 
@@ -116,15 +125,26 @@ class WorkoutRepository @Inject constructor(
     suspend fun getTotalStrengthSessions(targetDate: LocalDate): Int {
         val startDate = getProgramStartDate() ?: return 0
         if (targetDate.isBefore(startDate)) return 0
-        
-        val days = getStrengthDays()
+
         val anchor = getStrengthAnchor()
-        
+        val assignments = getStrengthDayPlanAssignments()
+        val overrides = getStrengthPlanOverrides()
+
         if (anchor != null && !targetDate.isBefore(anchor.first)) {
-            val sessionsSinceAnchor = countScheduledSessions(anchor.first.plusDays(1), targetDate, days)
+            val sessionsSinceAnchor = countStrengthSessions(
+                startDate = anchor.first.plusDays(1),
+                targetDate = targetDate,
+                assignments = assignments,
+                overrides = overrides
+            )
             return anchor.second + sessionsSinceAnchor
         } else {
-            return countScheduledSessions(startDate, targetDate, days)
+            return countStrengthSessions(
+                startDate = startDate,
+                targetDate = targetDate,
+                assignments = assignments,
+                overrides = overrides
+            )
         }
     }
 
@@ -188,7 +208,62 @@ class WorkoutRepository @Inject constructor(
             .map { decodeStrengthDayPlanAssignments(it) }
 
     suspend fun getStrengthPlanDayForDate(date: LocalDate): Int? =
-        getStrengthDayPlanAssignments()[date.dayOfWeek]
+        getStrengthPlanOverrideForDate(date) ?: getStrengthDayPlanAssignments()[date.dayOfWeek]
+
+    suspend fun saveStrengthPlanOverrideForDate(date: LocalDate, planDay: Int) {
+        if (planDay !in 1..2) return
+        settingsDao.upsert(
+            UserSettings(
+                key = strengthPlanOverrideKey(date),
+                value = planDay.toString()
+            )
+        )
+    }
+
+    suspend fun clearStrengthPlanOverrideForDate(date: LocalDate) {
+        settingsDao.delete(strengthPlanOverrideKey(date))
+    }
+
+    private suspend fun clearStrengthPlanOverrides() {
+        settingsDao.getAllSettings()
+            .filter { it.key.startsWith(SettingsKeys.STRENGTH_PLAN_OVERRIDE_PREFIX) }
+            .forEach { settingsDao.delete(it.key) }
+    }
+
+    private suspend fun getStrengthPlanOverrideForDate(date: LocalDate): Int? =
+        settingsDao.getValue(strengthPlanOverrideKey(date))?.toIntOrNull()?.takeIf { it in 1..2 }
+
+    private suspend fun getStrengthPlanOverrides(): Map<LocalDate, Int> =
+        settingsDao.getAllSettings()
+            .asSequence()
+            .filter { it.key.startsWith(SettingsKeys.STRENGTH_PLAN_OVERRIDE_PREFIX) }
+            .mapNotNull { setting ->
+                val dateRaw = setting.key.removePrefix(SettingsKeys.STRENGTH_PLAN_OVERRIDE_PREFIX)
+                val date = runCatching { LocalDate.parse(dateRaw) }.getOrNull()
+                val planDay = setting.value.toIntOrNull()?.takeIf { it in 1..2 }
+                if (date != null && planDay != null) date to planDay else null
+            }
+            .toMap()
+
+    private fun countStrengthSessions(
+        startDate: LocalDate,
+        targetDate: LocalDate,
+        assignments: Map<DayOfWeek, Int>,
+        overrides: Map<LocalDate, Int>
+    ): Int {
+        if (targetDate.isBefore(startDate)) return 0
+
+        var count = 0
+        var date = startDate
+        while (!date.isAfter(targetDate)) {
+            if (date in overrides || date.dayOfWeek in assignments) count++
+            date = date.plusDays(1)
+        }
+        return count
+    }
+
+    private fun strengthPlanOverrideKey(date: LocalDate): String =
+        SettingsKeys.STRENGTH_PLAN_OVERRIDE_PREFIX + date.toString()
 
     fun calculateScheduledSessions(
         startDate: LocalDate,

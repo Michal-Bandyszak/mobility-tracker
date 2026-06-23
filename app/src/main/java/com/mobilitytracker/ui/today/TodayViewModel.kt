@@ -112,6 +112,13 @@ class TodayViewModel @Inject constructor(
         }
     }
 
+    fun chooseStrengthWorkoutToday(planDay: Int) {
+        viewModelScope.launch {
+            workoutRepository.saveStrengthPlanOverrideForDate(LocalDate.now(), planDay)
+            loadToday()
+        }
+    }
+
     private fun observeStrengthLogs(strengthWorkout: ScheduledStrengthWorkout?) {
         strengthLogsJob?.cancel()
         if (strengthWorkout == null) {
@@ -122,7 +129,9 @@ class TodayViewModel @Inject constructor(
         strengthLogsJob = viewModelScope.launch {
             strengthRepository.observeLogsForDate(strengthWorkout.date).collectLatest { logs ->
                 _state.value = _state.value.copy(
-                    strengthLogs = logs.associateBy { strengthLogKey(it.exerciseId, it.setNumber) }
+                    strengthLogs = logs
+                        .filter { it.planDay == strengthWorkout.planDay }
+                        .associateBy { strengthLogKey(it.exerciseId, it.setNumber) }
                 )
             }
         }

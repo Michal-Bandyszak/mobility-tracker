@@ -1,60 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    Sylwetka człowieka w pozie rozciągania / gwiazdy (symbolizuje mobilność):
-    - głowa (kółko)
-    - tułów
-    - ramiona uniesione ukośnie w górę
-    - nogi rozstawione ukośnie w dół
--->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Głowa -->
+    <path
+        android:fillColor="#F8F3E3"
+        android:fillAlpha="0.15"
+        android:pathData="M54,54 m-38,0 a38,38 0,1 0,76 0 a38,38 0,1 0,-76 0" />
+
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#F8F3E3"
+        android:strokeAlpha="0.84"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M27,73 C17,49 30,25 53,23 C77,21 92,43 83,67" />
+
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="8.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M28,77 L39,37 L54,63 L69,37 L80,77" />
+
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#F6C75A"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M36,78 C43,67 48,58 54,50 C60,58 66,67 72,78" />
+
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,18 m-9,0 a9,9 0 1,0 18,0 a9,9 0 1,0 -18,0"/>
+        android:pathData="M54,21 m-7,0 a7,7 0,1 0,14 0 a7,7 0,1 0,-14 0" />
 
-    <!-- Tułów -->
     <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="7"
-        android:strokeLineCap="round"
         android:fillColor="@android:color/transparent"
-        android:pathData="M54,36 L54,66"/>
-
-    <!-- Lewe ramię (uniesione ukośnie w górę-lewo) -->
-    <path
         android:strokeColor="#FFFFFF"
-        android:strokeWidth="7"
+        android:strokeAlpha="0.92"
+        android:strokeWidth="4"
         android:strokeLineCap="round"
-        android:fillColor="@android:color/transparent"
-        android:pathData="M54,44 L24,26"/>
-
-    <!-- Prawe ramię (uniesione ukośnie w górę-prawo) -->
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="7"
-        android:strokeLineCap="round"
-        android:fillColor="@android:color/transparent"
-        android:pathData="M54,44 L84,26"/>
-
-    <!-- Lewa noga (rozstawiona ukośnie w dół-lewo) -->
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="7"
-        android:strokeLineCap="round"
-        android:fillColor="@android:color/transparent"
-        android:pathData="M54,66 L34,88"/>
-
-    <!-- Prawa noga (rozstawiona ukośnie w dół-prawo) -->
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="7"
-        android:strokeLineCap="round"
-        android:fillColor="@android:color/transparent"
-        android:pathData="M54,66 L74,88"/>
+        android:pathData="M35,87 H73" />
 
 </vector>

@@ -90,6 +90,9 @@ fun TodayScreen(viewModel: TodayViewModel = hiltViewModel()) {
                 onSaveStrengthSet = { exerciseId, setNumber, weight, reps, time ->
                     viewModel.saveStrengthSet(exerciseId, setNumber, weight, reps, time)
                 },
+                onChooseStrengthWorkoutToday = { planDay ->
+                    viewModel.chooseStrengthWorkoutToday(planDay)
+                },
                 onRefresh = { viewModel.loadToday() }
             )
         }
@@ -101,6 +104,7 @@ private fun TodayContent(
     state: TodayUiState,
     onToggle: () -> Unit,
     onSaveStrengthSet: (String, Int, Double?, Int?, Int?) -> Unit,
+    onChooseStrengthWorkoutToday: (Int) -> Unit,
     onRefresh: () -> Unit
 ) {
     val mobilityWorkout = state.mobilityWorkout
@@ -136,12 +140,15 @@ private fun TodayContent(
             StrengthWorkoutCard(
                 workout = strengthWorkout,
                 logs = state.strengthLogs,
-                onSaveSet = onSaveStrengthSet
+                onSaveSet = onSaveStrengthSet,
+                onChooseStrengthWorkoutToday = onChooseStrengthWorkoutToday
             )
         } else {
-            NoTrainingCard(
+            StrengthTodayPickerCard(
                 title = "Siłownia",
-                description = "Dziś nie ma zaplanowanego treningu siłowego."
+                description = "Dziś nie ma zaplanowanego treningu siłowego, ale możesz zrobić go jednorazowo bez zmiany tygodniowego planu.",
+                selectedPlanDay = null,
+                onChooseStrengthWorkoutToday = onChooseStrengthWorkoutToday
             )
         }
 
@@ -293,7 +300,8 @@ private fun MobilityWorkoutCard(workout: DayWorkout, onToggle: () -> Unit, onRef
 private fun StrengthWorkoutCard(
     workout: ScheduledStrengthWorkout,
     logs: Map<String, StrengthSetLog>,
-    onSaveSet: (String, Int, Double?, Int?, Int?) -> Unit
+    onSaveSet: (String, Int, Double?, Int?, Int?) -> Unit,
+    onChooseStrengthWorkoutToday: (Int) -> Unit
 ) {
     val context = LocalContext.current
 
@@ -314,6 +322,11 @@ private fun StrengthWorkoutCard(
                 text = "Sesja siłowa ${workout.sessionNumber} • ${workout.definition.focus}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            StrengthPlanSwitch(
+                selectedPlanDay = workout.planDay,
+                onChooseStrengthWorkoutToday = onChooseStrengthWorkoutToday
             )
 
             HorizontalDivider()
@@ -341,6 +354,81 @@ private fun StrengthWorkoutCard(
                     onSaveSet = onSaveSet
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun StrengthTodayPickerCard(
+    title: String,
+    description: String,
+    selectedPlanDay: Int?,
+    onChooseStrengthWorkoutToday: (Int) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            StrengthPlanSwitch(
+                selectedPlanDay = selectedPlanDay,
+                onChooseStrengthWorkoutToday = onChooseStrengthWorkoutToday
+            )
+        }
+    }
+}
+
+@Composable
+private fun StrengthPlanSwitch(
+    selectedPlanDay: Int?,
+    onChooseStrengthWorkoutToday: (Int) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        StrengthPlanButton(
+            label = "Zrób dziś T1",
+            selected = selectedPlanDay == 1,
+            onClick = { onChooseStrengthWorkoutToday(1) },
+            modifier = Modifier.weight(1f)
+        )
+        StrengthPlanButton(
+            label = "Zrób dziś T2",
+            selected = selectedPlanDay == 2,
+            onClick = { onChooseStrengthWorkoutToday(2) },
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun StrengthPlanButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (selected) {
+        Button(onClick = onClick, modifier = modifier) {
+            Text(label)
+        }
+    } else {
+        OutlinedButton(onClick = onClick, modifier = modifier) {
+            Text(label)
         }
     }
 }

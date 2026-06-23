@@ -70,7 +70,7 @@ class ReminderReceiver : BroadcastReceiver() {
         if (today.isBefore(startDate)) return
 
         val mobilityReminder = buildMobilityReminder(startDate, today)
-        val strengthReminder = buildStrengthReminder(startDate, today)
+        val strengthReminder = buildStrengthReminder(today)
 
         if (mobilityReminder != null || strengthReminder != null) {
             val title = when {
@@ -119,14 +119,9 @@ class ReminderReceiver : BroadcastReceiver() {
         )
     }
 
-    private suspend fun buildStrengthReminder(startDate: LocalDate, today: LocalDate): String? {
-        val strengthDays = workoutRepository.getStrengthDays()
-        if (!isTrainingScheduled(today, strengthDays)) return null
-
-        val sessionNumber = workoutRepository.getTotalStrengthSessions(today)
-        if (sessionNumber <= 0) return null
-
+    private suspend fun buildStrengthReminder(today: LocalDate): String? {
         val planDay = workoutRepository.getStrengthPlanDayForDate(today) ?: return null
+
         val definition = getStrengthWorkoutByDay(planDay) ?: return null
         return "Siłownia: ${definition.title}"
     }

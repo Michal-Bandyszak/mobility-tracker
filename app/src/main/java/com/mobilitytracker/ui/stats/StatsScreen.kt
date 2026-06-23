@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -60,74 +61,147 @@ import java.util.Locale
 fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val strengthStats by viewModel.strengthStats.collectAsStateWithLifecycle()
+    val backgroundBrush = Brush.verticalGradient(
+        listOf(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.40f),
+            MaterialTheme.colorScheme.background,
+            MaterialTheme.colorScheme.background
+        )
+    )
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+            .background(backgroundBrush)
     ) {
-        StatsHeader()
-
-        if (stats == null) {
-            EmptyStatsCard()
-            StrengthStatsSection(strengthStats = strengthStats)
-            return@Column
-        }
-
-        val mobilityStats = stats!!
-        ProgressRingCard(stats = mobilityStats)
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            MetricCard(
-                label = "Ukończone cykle",
-                value = mobilityStats.completedCycles.toString(),
-                modifier = Modifier.weight(1f)
-            )
-            MetricCard(
-                label = "Najdłuższa seria",
-                value = "${mobilityStats.longestStreak} dni",
-                modifier = Modifier.weight(1f)
-            )
-        }
+            StatsHeroCard(strengthStats = strengthStats)
 
-        if (mobilityStats.currentStreak > 1) {
-            MetricCard(
-                label = "Aktualna seria",
-                value = "${mobilityStats.currentStreak} dni",
-                valueColor = StreakOrange
-            )
-        }
+            if (stats == null) {
+                EmptyStatsCard()
+                StrengthStatsSection(strengthStats = strengthStats)
+                return@Column
+            }
 
-        StrengthStatsSection(strengthStats = strengthStats)
+            val mobilityStats = stats!!
+            ProgressRingCard(stats = mobilityStats)
 
-        if (mobilityStats.cycleBreakdown.isNotEmpty()) {
-            CycleBreakdownCard(stats = mobilityStats)
-        }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                MetricCard(
+                    label = "Ukończone cykle",
+                    value = mobilityStats.completedCycles.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+                MetricCard(
+                    label = "Najdłuższa seria",
+                    value = "${mobilityStats.longestStreak} dni",
+                    modifier = Modifier.weight(1f)
+                )
+            }
 
-        if (mobilityStats.categoryStats.isNotEmpty()) {
-            CategoryStatsCard(categoryStats = mobilityStats.categoryStats)
+            if (mobilityStats.currentStreak > 1) {
+                MetricCard(
+                    label = "Aktualna seria",
+                    value = "${mobilityStats.currentStreak} dni",
+                    valueColor = StreakOrange
+                )
+            }
+
+            StrengthStatsSection(strengthStats = strengthStats)
+
+            if (mobilityStats.cycleBreakdown.isNotEmpty()) {
+                CycleBreakdownCard(stats = mobilityStats)
+            }
+
+            if (mobilityStats.categoryStats.isNotEmpty()) {
+                CategoryStatsCard(categoryStats = mobilityStats.categoryStats)
+            }
         }
     }
 }
 
 @Composable
-private fun StatsHeader() {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = "Postęp",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold
+private fun StatsHeroCard(strengthStats: StrengthStats) {
+    val heroBrush = Brush.linearGradient(
+        listOf(
+            MaterialTheme.colorScheme.primary,
+            MaterialTheme.colorScheme.tertiary
         )
-        Text(
-            text = "Mobilność, siła i ostatnie treningi w jednym miejscu.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+    )
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(30.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .background(heroBrush)
+                .padding(22.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            Text(
+                text = "Ruch + siła",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f),
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "Postęp, który da się odczytać w sekundę.",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onPrimary,
+                fontWeight = FontWeight.Black
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                HeroMetric(
+                    label = "Sesje siłowe",
+                    value = strengthStats.overview.totalSessions.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+                HeroMetric(
+                    label = "Objętość",
+                    value = "${formatNumber(strengthStats.overview.totalVolumeKg)} kg",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeroMetric(label: String, value: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.14f))
+            .padding(12.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f)
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onPrimary,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
 
@@ -190,6 +264,7 @@ private fun StrengthStatsSection(strengthStats: StrengthStats) {
 private fun EmptyStrengthCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(
@@ -212,7 +287,12 @@ private fun EmptyStrengthCard() {
 
 @Composable
 private fun StrengthOverviewCard(overview: StrengthStatsOverview) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(26.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -255,7 +335,12 @@ private fun StrengthOverviewCard(overview: StrengthStatsOverview) {
 
 @Composable
 private fun ExerciseProgressCard(progress: StrengthExerciseProgress) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(26.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -348,7 +433,12 @@ private fun PerformanceBlock(
 
 @Composable
 private fun SessionSummaryCard(session: StrengthSessionSummary) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(26.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -410,17 +500,29 @@ private fun SessionSummaryCard(session: StrengthSessionSummary) {
 
 @Composable
 private fun SectionHeader(title: String, subtitle: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 5.dp, height = 40.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(MaterialTheme.colorScheme.tertiary)
         )
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -433,8 +535,9 @@ private fun MetricCard(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant
+        shape = RoundedCornerShape(22.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+        tonalElevation = 3.dp
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
@@ -517,7 +620,12 @@ private fun Sparkline(values: List<Double>) {
 
 @Composable
 private fun ProgressRingCard(stats: CycleStats) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+    ) {
         Column(
             modifier = Modifier.padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -582,7 +690,11 @@ private fun ProgressRingCard(stats: CycleStats) {
 
 @Composable
 private fun CycleBreakdownCard(stats: CycleStats) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(26.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "ROZKŁAD CYKLI",
@@ -635,7 +747,11 @@ private fun CategoryStatsCard(categoryStats: Map<String, Int>) {
         "przednia_tasma" to "Przednia taśma",
         "inne" to "Inne"
     )
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(26.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "KATEGORIE MOBILNOŚCI",

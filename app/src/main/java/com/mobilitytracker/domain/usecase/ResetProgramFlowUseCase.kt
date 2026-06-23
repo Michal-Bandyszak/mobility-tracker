@@ -11,7 +11,7 @@ class ResetProgramFlowUseCase @Inject constructor(
     private val strengthRepository: StrengthRepository
 ) {
     suspend operator fun invoke() {
-        workoutRepository.clearProgramStartDate()
+        workoutRepository.clearProgramFlowSettings()
         completionRepository.deleteAllCompletions()
         strengthRepository.deleteAllLogs()
     }

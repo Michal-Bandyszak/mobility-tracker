@@ -2,6 +2,8 @@ package com.mobilitytracker.ui.calendar
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mobilitytracker.data.model.StrengthSetLog
+import com.mobilitytracker.data.repository.StrengthRepository
 import com.mobilitytracker.data.repository.WorkoutRepository
 import com.mobilitytracker.domain.model.DayWorkout
 import com.mobilitytracker.domain.usecase.GetCycleWorkoutsUseCase
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -22,20 +25,30 @@ data class CalendarUiState(
     val maxCycle: Int = 1,
     val workouts: List<DayWorkout> = emptyList(),
     val todayCycle: Int = 1,
-    val todayVideoOrder: Int = 1
+    val todayVideoOrder: Int = 1,
+    val strengthHistory: List<StrengthCalendarEntry> = emptyList()
+)
+
+data class StrengthCalendarEntry(
+    val date: LocalDate,
+    val dayLabel: String,
+    val planDay: Int,
+    val loggedSets: Int
 )
 
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
     private val getCycleWorkouts: GetCycleWorkoutsUseCase,
     private val toggleCompletion: ToggleCompletionUseCase,
-    private val workoutRepository: WorkoutRepository
+    private val workoutRepository: WorkoutRepository,
+    private val strengthRepository: StrengthRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CalendarUiState())
     val state: StateFlow<CalendarUiState> = _state.asStateFlow()
 
     private var loadJob: Job? = null
+    private var strengthHistoryJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -49,6 +62,7 @@ class CalendarViewModel @Inject constructor(
                     todayVideoOrder = todayVideo
                 )
                 loadCycle(todayCycle)
+                observeStrengthHistory()
             } else {
                 _state.value = CalendarUiState(isLoading = false)
             }
@@ -83,4 +97,48 @@ class CalendarViewModel @Inject constructor(
             toggleCompletion.invoke(cycleNumber, videoOrder)
         }
     }
+
+    private fun observeStrengthHistory() {
+        if (strengthHistoryJob != null) return
+
+        strengthHistoryJob = viewModelScope.launch {
+            strengthRepository.observeAllLogs().collectLatest { logs ->
+                _state.value = _state.value.copy(
+                    strengthHistory = logs.toStrengthCalendarEntries()
+                )
+            }
+        }
+    }
+
+    private fun List<StrengthSetLog>.toStrengthCalendarEntries(): List<StrengthCalendarEntry> =
+        asSequence()
+            .mapNotNull { log ->
+                val date = runCatching { LocalDate.parse(log.date) }.getOrNull()
+                if (date != null) (date to log.planDay) to log else null
+            }
+            .groupBy(
+                keySelector = { it.first },
+                valueTransform = { it.second }
+            )
+            .map { (key, sessionLogs) ->
+                val (date, planDay) = key
+                StrengthCalendarEntry(
+                    date = date,
+                    dayLabel = date.toPolishDayLabel(),
+                    planDay = planDay,
+                    loggedSets = sessionLogs.size
+                )
+            }
+            .sortedWith(compareByDescending<StrengthCalendarEntry> { it.date }.thenByDescending { it.planDay })
+
+    private fun LocalDate.toPolishDayLabel(): String =
+        when (dayOfWeek) {
+            DayOfWeek.MONDAY -> "poniedziałek"
+            DayOfWeek.TUESDAY -> "wtorek"
+            DayOfWeek.WEDNESDAY -> "środa"
+            DayOfWeek.THURSDAY -> "czwartek"
+            DayOfWeek.FRIDAY -> "piątek"
+            DayOfWeek.SATURDAY -> "sobota"
+            DayOfWeek.SUNDAY -> "niedziela"
+        }
 }
