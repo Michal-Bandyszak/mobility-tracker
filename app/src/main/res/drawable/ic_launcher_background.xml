@@ -16,19 +16,19 @@
                 android:type="linear">
                 <item
                     android:offset="0"
-                    android:color="#071816" />
+                    android:color="#14130F" />
                 <item
                     android:offset="0.55"
-                    android:color="#0E6A56" />
+                    android:color="#4F6533" />
                 <item
                     android:offset="1"
-                    android:color="#E7B94E" />
+                    android:color="#D4A243" />
             </gradient>
         </aapt:attr>
     </path>
 
     <path
-        android:fillColor="#20D09A"
+        android:fillColor="#B8C98A"
         android:fillAlpha="0.28"
         android:pathData="M88,6 C105,20 107,43 94,56 C81,70 55,58 60,38 C64,22 75,11 88,6Z" />
 

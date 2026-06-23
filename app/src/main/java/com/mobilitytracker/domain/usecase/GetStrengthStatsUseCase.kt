@@ -7,6 +7,7 @@ import com.mobilitytracker.data.model.TrackingType
 import com.mobilitytracker.data.repository.StrengthRepository
 import com.mobilitytracker.domain.model.StrengthExerciseProgress
 import com.mobilitytracker.domain.model.StrengthPerformance
+import com.mobilitytracker.domain.model.StrengthProgressHighlight
 import com.mobilitytracker.domain.model.StrengthSessionExerciseSummary
 import com.mobilitytracker.domain.model.StrengthSessionSummary
 import com.mobilitytracker.domain.model.StrengthStats
@@ -14,6 +15,8 @@ import com.mobilitytracker.domain.model.StrengthStatsOverview
 import com.mobilitytracker.domain.model.StrengthTrend
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.LocalDate
+import java.time.YearMonth
 import javax.inject.Inject
 
 class GetStrengthStatsUseCase @Inject constructor(
@@ -38,27 +41,33 @@ class GetStrengthStatsUseCase @Inject constructor(
 
         val recentSessions = buildSessionSummaries(trackedLogs, workouts, exercises)
         val exerciseProgress = buildExerciseProgress(trackedLogs, exercises)
-        val overview = buildOverview(trackedLogs, recentSessions, exerciseProgress)
+        val overview = buildOverview(recentSessions, exerciseProgress)
+        val notableProgress = buildNotableProgress(exerciseProgress)
 
         return StrengthStats(
             overview = overview,
+            notableProgress = notableProgress,
             exerciseProgress = exerciseProgress,
             recentSessions = recentSessions.take(6)
         )
     }
 
     private fun buildOverview(
-        logs: List<StrengthSetLog>,
         sessions: List<StrengthSessionSummary>,
         exerciseProgress: List<StrengthExerciseProgress>
     ): StrengthStatsOverview {
         val latestSession = sessions.firstOrNull()
+        val currentMonth = YearMonth.now()
         return StrengthStatsOverview(
             totalSessions = sessions.size,
+            sessionsThisMonth = sessions.count { session ->
+                session.date.toYearMonthOrNull() == currentMonth
+            },
             latestSessionDate = latestSession?.date,
             latestSessionPlanDay = latestSession?.planDay,
+            latestCompletedTrackedSets = latestSession?.completedTrackedSets ?: 0,
+            latestPlannedTrackedSets = latestSession?.plannedTrackedSets ?: 0,
             trackedExercises = exerciseProgress.size,
-            totalVolumeKg = logs.sumOf { it.volumeKg() },
             totalLoggedSets = logs.size
         )
     }
@@ -72,7 +81,7 @@ class GetStrengthStatsUseCase @Inject constructor(
                 val exercise = exercises[exerciseId] ?: return@mapNotNull null
                 val performances = exerciseLogs
                     .groupBy { it.date to it.planDay }
-                    .map { (_, dailyLogs) -> dailyLogs.toPerformance() }
+                    .map { (_, dailyLogs) -> dailyLogs.toPerformance(exercise.trackingType) }
                     .sortedByDescending { it.date }
 
                 StrengthExerciseProgress(
@@ -111,7 +120,7 @@ class GetStrengthStatsUseCase @Inject constructor(
                         StrengthSessionExerciseSummary(
                             exerciseName = exercise.name,
                             trackingType = exercise.trackingType,
-                            bestPerformance = exerciseLogs.toPerformance(),
+                            bestPerformance = exerciseLogs.toPerformance(exercise.trackingType),
                             loggedSets = exerciseLogs.size
                         )
                     }
@@ -122,7 +131,6 @@ class GetStrengthStatsUseCase @Inject constructor(
                     planDay = planDay,
                     completedTrackedSets = sessionLogs.size,
                     plannedTrackedSets = plannedTrackedSets,
-                    totalVolumeKg = sessionLogs.sumOf { it.volumeKg() },
                     exerciseSummaries = exerciseSummaries
                 )
             }
@@ -137,12 +145,28 @@ class GetStrengthStatsUseCase @Inject constructor(
             ?.sumOf { it.sets }
             ?: 0
 
-    private fun List<StrengthSetLog>.toPerformance(): StrengthPerformance {
+    private fun buildNotableProgress(
+        exerciseProgress: List<StrengthExerciseProgress>
+    ): StrengthProgressHighlight? {
+        val improved = exerciseProgress.firstOrNull { progress ->
+            progress.trend == StrengthTrend.UP && progress.latest != null
+        }
+        val fallback = exerciseProgress.firstOrNull { it.latest != null }
+        val selected = improved ?: fallback ?: return null
+        val latest = selected.latest ?: return null
+
+        return StrengthProgressHighlight(
+            exerciseName = selected.name,
+            trackingType = selected.trackingType,
+            latest = latest,
+            previous = selected.recentPerformances.getOrNull(1),
+            trend = selected.trend
+        )
+    }
+
+    private fun List<StrengthSetLog>.toPerformance(trackingType: TrackingType): StrengthPerformance {
         val bestLog = maxWithOrNull(
-            compareBy<StrengthSetLog> { it.volumeKg() }
-                .thenBy { it.timeSeconds ?: 0 }
-                .thenBy { it.reps ?: 0 }
-                .thenBy { it.weightKg ?: 0.0 }
+            logComparator(trackingType)
         ) ?: first()
 
         return StrengthPerformance(
@@ -150,8 +174,7 @@ class GetStrengthStatsUseCase @Inject constructor(
             planDay = bestLog.planDay,
             weightKg = bestLog.weightKg,
             reps = bestLog.reps,
-            timeSeconds = bestLog.timeSeconds,
-            volumeKg = bestLog.volumeKg().takeIf { it > 0.0 }
+            timeSeconds = bestLog.timeSeconds
         )
     }
 
@@ -172,17 +195,23 @@ class GetStrengthStatsUseCase @Inject constructor(
         }
     }
 
-    private fun StrengthSetLog.volumeKg(): Double {
-        val weight = weightKg ?: return 0.0
-        val repetitions = reps ?: return 0.0
-        return weight * repetitions
-    }
+    private fun logComparator(trackingType: TrackingType): Comparator<StrengthSetLog> =
+        when (trackingType) {
+            TrackingType.WEIGHT_AND_REPS -> compareBy<StrengthSetLog> { it.weightKg ?: 0.0 }
+                .thenBy { it.reps ?: 0 }
+            TrackingType.REPS_ONLY -> compareBy { it.reps ?: 0 }
+            TrackingType.TIME_ONLY -> compareBy { it.timeSeconds ?: 0 }
+            TrackingType.NONE -> compareBy { it.updatedAt }
+        }
 
     private fun StrengthPerformance.scoreFor(trackingType: TrackingType): Double =
         when (trackingType) {
-            TrackingType.WEIGHT_AND_REPS -> volumeKg ?: 0.0
+            TrackingType.WEIGHT_AND_REPS -> ((weightKg ?: 0.0) * 100.0) + ((reps ?: 0) / 100.0)
             TrackingType.REPS_ONLY -> reps?.toDouble() ?: 0.0
             TrackingType.TIME_ONLY -> timeSeconds?.toDouble() ?: 0.0
             TrackingType.NONE -> 0.0
         }
+
+    private fun String.toYearMonthOrNull(): YearMonth? =
+        runCatching { YearMonth.from(LocalDate.parse(this)) }.getOrNull()
 }

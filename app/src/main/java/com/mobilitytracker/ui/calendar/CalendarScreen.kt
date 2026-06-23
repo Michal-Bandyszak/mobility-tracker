@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mobilitytracker.domain.model.DayWorkout
 import com.mobilitytracker.ui.theme.CompletedGreen
-import com.mobilitytracker.ui.theme.TodayBlue
+import com.mobilitytracker.ui.theme.TodayAmber
 
 @Composable
 fun CalendarScreen(viewModel: CalendarViewModel = hiltViewModel()) {
@@ -276,7 +276,7 @@ private fun CycleGrid(
 private fun DayCell(number: Int, isCompleted: Boolean, isToday: Boolean) {
     val bgColor = when {
         isCompleted -> CompletedGreen
-        isToday -> TodayBlue
+        isToday -> TodayAmber
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
     val textColor = when {

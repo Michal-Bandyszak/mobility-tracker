@@ -49,6 +49,7 @@ import com.mobilitytracker.data.model.TrackingType
 import com.mobilitytracker.domain.model.CycleStats
 import com.mobilitytracker.domain.model.StrengthExerciseProgress
 import com.mobilitytracker.domain.model.StrengthPerformance
+import com.mobilitytracker.domain.model.StrengthProgressHighlight
 import com.mobilitytracker.domain.model.StrengthSessionSummary
 import com.mobilitytracker.domain.model.StrengthStats
 import com.mobilitytracker.domain.model.StrengthStatsOverview
@@ -63,7 +64,7 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
     val strengthStats by viewModel.strengthStats.collectAsStateWithLifecycle()
     val backgroundBrush = Brush.verticalGradient(
         listOf(
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.40f),
+            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.32f),
             MaterialTheme.colorScheme.background,
             MaterialTheme.colorScheme.background
         )
@@ -133,10 +134,12 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
 private fun StatsHeroCard(strengthStats: StrengthStats) {
     val heroBrush = Brush.linearGradient(
         listOf(
-            MaterialTheme.colorScheme.primary,
-            MaterialTheme.colorScheme.tertiary
+            MaterialTheme.colorScheme.primaryContainer,
+            MaterialTheme.colorScheme.secondaryContainer,
+            MaterialTheme.colorScheme.tertiaryContainer
         )
     )
+    val contentColor = MaterialTheme.colorScheme.onPrimaryContainer
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -151,29 +154,35 @@ private fun StatsHeroCard(strengthStats: StrengthStats) {
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
             Text(
-                text = "Ruch + siła",
+                text = "SIŁA I MOBILNOŚĆ",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f),
+                color = contentColor.copy(alpha = 0.72f),
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Postęp, który da się odczytać w sekundę.",
+                text = strengthStats.notableProgress?.heroTitle() ?: "Zapisuj treningi, nie szum.",
                 style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onPrimary,
+                color = contentColor,
                 fontWeight = FontWeight.Black
+            )
+            Text(
+                text = strengthStats.notableProgress?.heroSubtitle()
+                    ?: "Po pierwszych sesjach pokażę ostatni trening, kompletność serii i realny progres ćwiczeń.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = contentColor.copy(alpha = 0.78f)
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 HeroMetric(
-                    label = "Sesje siłowe",
-                    value = strengthStats.overview.totalSessions.toString(),
+                    label = "Ten miesiąc",
+                    value = "${strengthStats.overview.sessionsThisMonth} sesje",
                     modifier = Modifier.weight(1f)
                 )
                 HeroMetric(
-                    label = "Objętość",
-                    value = "${formatNumber(strengthStats.overview.totalVolumeKg)} kg",
+                    label = "Ostatnio",
+                    value = strengthStats.overview.latestSessionPlanDay?.let { "T$it" } ?: "brak",
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -183,22 +192,24 @@ private fun StatsHeroCard(strengthStats: StrengthStats) {
 
 @Composable
 private fun HeroMetric(label: String, value: String, modifier: Modifier = Modifier) {
+    val contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.14f))
+            .background(contentColor.copy(alpha = 0.10f))
             .padding(12.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f)
+                color = contentColor.copy(alpha = 0.72f)
             )
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onPrimary,
+                color = contentColor,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -229,7 +240,7 @@ private fun EmptyStatsCard() {
 private fun StrengthStatsSection(strengthStats: StrengthStats) {
     SectionHeader(
         title = "Siła",
-        subtitle = "Progres ćwiczeń, objętość i ostatnie sesje."
+        subtitle = "Ostatni trening, kompletność serii i progres ćwiczeń."
     )
 
     if (!strengthStats.hasLogs) {
@@ -242,7 +253,7 @@ private fun StrengthStatsSection(strengthStats: StrengthStats) {
     if (strengthStats.exerciseProgress.isNotEmpty()) {
         SectionHeader(
             title = "Progres ćwiczeń",
-            subtitle = "Ostatni wynik, najlepszy wynik i kierunek zmiany."
+            subtitle = "Ostatni wynik, najlepszy wynik i kierunek zmiany dla danego typu ćwiczenia."
         )
         strengthStats.exerciseProgress.forEach { progress ->
             ExerciseProgressCard(progress = progress)
@@ -277,7 +288,7 @@ private fun EmptyStrengthCard() {
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Po pierwszym zapisanym treningu zobaczysz tutaj objętość, progres ćwiczeń i historię sesji.",
+                text = "Po pierwszym zapisanym treningu zobaczysz ostatnią sesję, kompletność serii i progres ćwiczeń.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -302,13 +313,13 @@ private fun StrengthOverviewCard(overview: StrengthStatsOverview) {
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 MetricCard(
-                    label = "Sesje",
+                    label = "Wszystkie sesje",
                     value = overview.totalSessions.toString(),
                     modifier = Modifier.weight(1f)
                 )
                 MetricCard(
-                    label = "Ćwiczenia",
-                    value = overview.trackedExercises.toString(),
+                    label = "Ten miesiąc",
+                    value = overview.sessionsThisMonth.toString(),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -317,15 +328,13 @@ private fun StrengthOverviewCard(overview: StrengthStatsOverview) {
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 MetricCard(
-                    label = "Objętość",
-                    value = "${formatNumber(overview.totalVolumeKg)} kg",
+                    label = "Śledzone ćwiczenia",
+                    value = overview.trackedExercises.toString(),
                     modifier = Modifier.weight(1f)
                 )
                 MetricCard(
-                    label = "Ostatnio",
-                    value = overview.latestSessionDate?.let { date ->
-                        overview.latestSessionPlanDay?.let { planDay -> "T$planDay · $date" } ?: date
-                    } ?: "brak",
+                    label = "Ostatnia sesja",
+                    value = overview.latestSessionLabel(),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -455,7 +464,7 @@ private fun SessionSummaryCard(session: StrengthSessionSummary) {
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "${session.completedTrackedSets}/${session.plannedTrackedSets} serii · ${formatNumber(session.totalVolumeKg)} kg",
+                        text = "${session.completedTrackedSets}/${session.plannedTrackedSets} serii · ${session.exerciseSummaries.size} ćw.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -794,9 +803,38 @@ private fun StrengthPerformance.formatFor(trackingType: TrackingType): String =
         TrackingType.NONE -> "wykonano"
     }
 
+private fun StrengthProgressHighlight.heroTitle(): String =
+    when (trend) {
+        StrengthTrend.UP -> "${exerciseName}: lepiej niż ostatnio"
+        StrengthTrend.FLAT -> "${exerciseName}: stabilny wynik"
+        StrengthTrend.DOWN -> "${exerciseName}: słabszy ostatni zapis"
+        StrengthTrend.UNKNOWN -> "${exerciseName}: pierwszy punkt odniesienia"
+    }
+
+private fun StrengthProgressHighlight.heroSubtitle(): String {
+    val latestValue = latest.formatFor(trackingType)
+    val previousValue = previous?.formatFor(trackingType)
+    return if (previousValue != null) {
+        "Ostatnio $latestValue, poprzednio $previousValue. T${latest.planDay} · ${latest.date}"
+    } else {
+        "Ostatnio $latestValue. Zapisz kolejną sesję, a pokażę kierunek zmiany."
+    }
+}
+
+private fun StrengthStatsOverview.latestSessionLabel(): String {
+    if (latestSessionDate == null) return "brak"
+    val plan = latestSessionPlanDay?.let { "T$it" } ?: "T?"
+    val sets = if (latestPlannedTrackedSets > 0) {
+        "$latestCompletedTrackedSets/$latestPlannedTrackedSets"
+    } else {
+        latestCompletedTrackedSets.toString()
+    }
+    return "$plan · $sets serii"
+}
+
 private fun StrengthPerformance.scoreFor(trackingType: TrackingType): Double =
     when (trackingType) {
-        TrackingType.WEIGHT_AND_REPS -> volumeKg ?: 0.0
+        TrackingType.WEIGHT_AND_REPS -> weightKg ?: 0.0
         TrackingType.REPS_ONLY -> reps?.toDouble() ?: 0.0
         TrackingType.TIME_ONLY -> timeSeconds?.toDouble() ?: 0.0
         TrackingType.NONE -> 0.0

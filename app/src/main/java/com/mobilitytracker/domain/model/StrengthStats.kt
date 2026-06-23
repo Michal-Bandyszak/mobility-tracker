@@ -4,6 +4,7 @@ import com.mobilitytracker.data.model.TrackingType
 
 data class StrengthStats(
     val overview: StrengthStatsOverview,
+    val notableProgress: StrengthProgressHighlight?,
     val exerciseProgress: List<StrengthExerciseProgress>,
     val recentSessions: List<StrengthSessionSummary>
 ) {
@@ -13,12 +14,15 @@ data class StrengthStats(
         val EMPTY = StrengthStats(
             overview = StrengthStatsOverview(
                 totalSessions = 0,
+                sessionsThisMonth = 0,
                 latestSessionDate = null,
                 latestSessionPlanDay = null,
+                latestCompletedTrackedSets = 0,
+                latestPlannedTrackedSets = 0,
                 trackedExercises = 0,
-                totalVolumeKg = 0.0,
                 totalLoggedSets = 0
             ),
+            notableProgress = null,
             exerciseProgress = emptyList(),
             recentSessions = emptyList()
         )
@@ -27,11 +31,21 @@ data class StrengthStats(
 
 data class StrengthStatsOverview(
     val totalSessions: Int,
+    val sessionsThisMonth: Int,
     val latestSessionDate: String?,
     val latestSessionPlanDay: Int?,
+    val latestCompletedTrackedSets: Int,
+    val latestPlannedTrackedSets: Int,
     val trackedExercises: Int,
-    val totalVolumeKg: Double,
     val totalLoggedSets: Int
+)
+
+data class StrengthProgressHighlight(
+    val exerciseName: String,
+    val trackingType: TrackingType,
+    val latest: StrengthPerformance,
+    val previous: StrengthPerformance?,
+    val trend: StrengthTrend
 )
 
 data class StrengthExerciseProgress(
@@ -51,7 +65,6 @@ data class StrengthSessionSummary(
     val planDay: Int,
     val completedTrackedSets: Int,
     val plannedTrackedSets: Int,
-    val totalVolumeKg: Double,
     val exerciseSummaries: List<StrengthSessionExerciseSummary>
 ) {
     val completionRatio: Float =
@@ -70,8 +83,7 @@ data class StrengthPerformance(
     val planDay: Int,
     val weightKg: Double?,
     val reps: Int?,
-    val timeSeconds: Int?,
-    val volumeKg: Double?
+    val timeSeconds: Int?
 )
 
 enum class StrengthTrend {
