@@ -123,10 +123,10 @@ class ReminderReceiver : BroadcastReceiver() {
         val strengthDays = workoutRepository.getStrengthDays()
         if (!isTrainingScheduled(today, strengthDays)) return null
 
-        val sessionNumber = workoutRepository.calculateScheduledSessions(startDate, today, strengthDays)
+        val sessionNumber = workoutRepository.getTotalStrengthSessions(today)
         if (sessionNumber <= 0) return null
 
-        val planDay = ((sessionNumber - 1) % 2) + 1
+        val planDay = workoutRepository.getStrengthPlanDayForDate(today) ?: return null
         val definition = getStrengthWorkoutByDay(planDay) ?: return null
         return "Siłownia: ${definition.title}"
     }

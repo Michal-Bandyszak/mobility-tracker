@@ -9,7 +9,9 @@ import com.mobilitytracker.data.model.UserSettings
 import com.mobilitytracker.data.model.WorkoutDefinition
 import com.mobilitytracker.data.model.WORKOUT_PLAN
 import com.mobilitytracker.data.model.countScheduledSessions
+import com.mobilitytracker.data.model.decodeStrengthDayPlanAssignments
 import com.mobilitytracker.data.model.decodeTrainingDays
+import com.mobilitytracker.data.model.encodeStrengthDayPlanAssignments
 import com.mobilitytracker.data.model.encodeTrainingDays
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -61,7 +63,22 @@ class WorkoutRepository @Inject constructor(
         decodeTrainingDays(settingsDao.getValue(SettingsKeys.MOBILITY_DAYS), DEFAULT_MOBILITY_DAYS)
 
     suspend fun getStrengthDays(): Set<DayOfWeek> =
-        decodeTrainingDays(settingsDao.getValue(SettingsKeys.STRENGTH_DAYS), DEFAULT_STRENGTH_DAYS)
+        getStrengthDayPlanAssignments().keys
+
+    suspend fun getStrengthDayPlanAssignments(): Map<DayOfWeek, Int> {
+        val raw = settingsDao.getValue(SettingsKeys.STRENGTH_DAY_PLAN_ASSIGNMENTS)
+        if (raw != null) return decodeStrengthDayPlanAssignments(raw)
+
+        val legacyDays = decodeTrainingDays(
+            settingsDao.getValue(SettingsKeys.STRENGTH_DAYS),
+            DEFAULT_STRENGTH_DAYS
+        )
+        if (legacyDays == DEFAULT_STRENGTH_DAYS) return decodeStrengthDayPlanAssignments(null)
+
+        return legacyDays.sortedBy { it.value }
+            .mapIndexed { index, day -> day to ((index % 2) + 1) }
+            .toMap()
+    }
 
     suspend fun getMobilityAnchor(): Pair<LocalDate, Int>? {
         val dateRaw = settingsDao.getValue(SettingsKeys.MOBILITY_ANCHOR_DATE)
@@ -127,18 +144,35 @@ class WorkoutRepository @Inject constructor(
     }
 
     suspend fun saveStrengthDays(days: Set<DayOfWeek>) {
+        val assignments = days.sortedBy { it.value }
+            .mapIndexed { index, day -> day to ((index % 2) + 1) }
+            .toMap()
+        saveStrengthDayPlanAssignments(assignments)
+    }
+
+    suspend fun saveStrengthDayPlanAssignments(assignments: Map<DayOfWeek, Int>) {
+        val normalized = assignments
+            .filterValues { it in 1..2 }
+            .toSortedMap(compareBy { it.value })
         val currentDays = getStrengthDays()
-        if (currentDays == days) return
-        
-        val today = LocalDate.now()
-        val startDate = getProgramStartDate()
-        if (startDate != null && !today.isBefore(startDate)) {
-            val sessionsSoFar = getTotalStrengthSessions(today.minusDays(1))
-            settingsDao.upsert(UserSettings(SettingsKeys.STRENGTH_ANCHOR_DATE, today.minusDays(1).toString()))
-            settingsDao.upsert(UserSettings(SettingsKeys.STRENGTH_SESSIONS_AT_ANCHOR, sessionsSoFar.toString()))
+        val updatedDays = normalized.keys
+        if (currentDays != updatedDays) {
+            val today = LocalDate.now()
+            val startDate = getProgramStartDate()
+            if (startDate != null && !today.isBefore(startDate)) {
+                val sessionsSoFar = getTotalStrengthSessions(today.minusDays(1))
+                settingsDao.upsert(UserSettings(SettingsKeys.STRENGTH_ANCHOR_DATE, today.minusDays(1).toString()))
+                settingsDao.upsert(UserSettings(SettingsKeys.STRENGTH_SESSIONS_AT_ANCHOR, sessionsSoFar.toString()))
+            }
         }
-        
-        settingsDao.upsert(UserSettings(SettingsKeys.STRENGTH_DAYS, encodeTrainingDays(days)))
+
+        settingsDao.upsert(
+            UserSettings(
+                SettingsKeys.STRENGTH_DAY_PLAN_ASSIGNMENTS,
+                encodeStrengthDayPlanAssignments(normalized)
+            )
+        )
+        settingsDao.upsert(UserSettings(SettingsKeys.STRENGTH_DAYS, encodeTrainingDays(updatedDays)))
     }
 
     fun observeMobilityDays(): Flow<Set<DayOfWeek>> =
@@ -146,8 +180,15 @@ class WorkoutRepository @Inject constructor(
             .map { decodeTrainingDays(it, DEFAULT_MOBILITY_DAYS) }
 
     fun observeStrengthDays(): Flow<Set<DayOfWeek>> =
-        settingsDao.observeValue(SettingsKeys.STRENGTH_DAYS)
-            .map { decodeTrainingDays(it, DEFAULT_STRENGTH_DAYS) }
+        settingsDao.observeValue(SettingsKeys.STRENGTH_DAY_PLAN_ASSIGNMENTS)
+            .map { decodeStrengthDayPlanAssignments(it).keys }
+
+    fun observeStrengthDayPlanAssignments(): Flow<Map<DayOfWeek, Int>> =
+        settingsDao.observeValue(SettingsKeys.STRENGTH_DAY_PLAN_ASSIGNMENTS)
+            .map { decodeStrengthDayPlanAssignments(it) }
+
+    suspend fun getStrengthPlanDayForDate(date: LocalDate): Int? =
+        getStrengthDayPlanAssignments()[date.dayOfWeek]
 
     fun calculateScheduledSessions(
         startDate: LocalDate,

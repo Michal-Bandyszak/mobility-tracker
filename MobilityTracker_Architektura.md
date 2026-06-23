@@ -12,7 +12,7 @@ Natywna aplikacja Android (Kotlin + Jetpack Compose) do śledzenia cyklicznego p
 Aplikacja została rozszerzona z prostego trackera codziennej mobilności do lokalnego planera treningowego:
 - mobilność i siłownia mają osobne dni tygodnia ustawiane w `SettingsScreen`,
 - mobilność nadal korzysta z 17-elementowego cyklu, ale cykl przesuwa się tylko w wybrane dni mobilności,
-- trening siłowy rotuje między dwoma jednostkami z planu PDF: Dzień 1, Dzień 2, Dzień 1...,
+- trening siłowy jest przypisywany jawnie do dnia tygodnia: np. poniedziałek = Dzień 1, czwartek = Dzień 2,
 - logi siłowe są osobną tabelą Room `strength_set_logs`, bo użytkownik wpisuje ciężar i powtórzenia per seria,
 - reset flow usuwa datę startu, ukończenia mobilności i logi siłowe, ale zostawia harmonogram oraz przypomnienia.
 

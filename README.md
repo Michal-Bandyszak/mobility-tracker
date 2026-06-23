@@ -7,7 +7,7 @@ Android app for tracking a scheduled mobility program and a 2-day strength train
 - **Scheduled mobility tracking** — configurable weekdays for a repeating 17-video mobility cycle
 - **Strength training plan** — 2-day gym plan with exercise prescriptions, technique links, and set logging
 - **Set logs** — save weight and completed reps per exercise and set
-- **Training schedule** — choose which weekdays are for mobility and which are for strength training
+- **Training schedule** — choose mobility weekdays and assign each gym weekday to Strength Day 1 or Day 2
 - **Flow reset** — reset program start, mobility completions, and strength logs while keeping preferences
 - **Calendar view** — navigate between cycles, see completion history at a glance
 - **Statistics** — animated progress ring, streaks, per-cycle breakdown, category distribution
@@ -93,7 +93,7 @@ currentCycle = (totalDays / 17) + 1
 currentVideo = (totalDays % 17) + 1
 ```
 
-The mobility cycle repeats indefinitely and advances only on selected mobility weekdays. Strength training rotates between Day 1 and Day 2 on selected strength weekdays.
+The mobility cycle repeats indefinitely and advances only on selected mobility weekdays. Strength training is selected per weekday, so Monday can be Day 1, Thursday can be Day 2, or any other mapping can be configured.
 
 ## Permissions
 

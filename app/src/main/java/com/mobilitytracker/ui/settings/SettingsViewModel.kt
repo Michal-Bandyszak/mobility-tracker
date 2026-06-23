@@ -30,7 +30,8 @@ data class SettingsUiState(
     val canScheduleExactAlarms: Boolean = true,
     val hasNotificationPermission: Boolean = true,
     val mobilityDays: Set<DayOfWeek> = emptySet(),
-    val strengthDays: Set<DayOfWeek> = emptySet()
+    val strengthDays: Set<DayOfWeek> = emptySet(),
+    val strengthDayPlanAssignments: Map<DayOfWeek, Int> = emptyMap()
 )
 
 @HiltViewModel
@@ -49,7 +50,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             val (enabled, hour, minute) = workoutRepository.getReminderSettings()
             val mobilityDays = workoutRepository.getMobilityDays()
-            val strengthDays = workoutRepository.getStrengthDays()
+            val strengthDayPlanAssignments = workoutRepository.getStrengthDayPlanAssignments()
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             val canSchedule = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 alarmManager.canScheduleExactAlarms()
@@ -66,7 +67,8 @@ class SettingsViewModel @Inject constructor(
                 canScheduleExactAlarms = canSchedule,
                 hasNotificationPermission = hasNotifPermission,
                 mobilityDays = mobilityDays,
-                strengthDays = strengthDays
+                strengthDays = strengthDayPlanAssignments.keys,
+                strengthDayPlanAssignments = strengthDayPlanAssignments
             )
         }
     }
@@ -130,10 +132,18 @@ class SettingsViewModel @Inject constructor(
 
     fun toggleStrengthDay(day: DayOfWeek) {
         viewModelScope.launch {
-            val current = _state.value.strengthDays
-            val updated = if (day in current) current - day else current + day
-            workoutRepository.saveStrengthDays(updated)
-            _state.value = _state.value.copy(strengthDays = updated)
+            val current = _state.value.strengthDayPlanAssignments
+            val currentPlan = current[day]
+            val updated = when (currentPlan) {
+                null -> current + (day to 1)
+                1 -> current + (day to 2)
+                else -> current - day
+            }
+            workoutRepository.saveStrengthDayPlanAssignments(updated)
+            _state.value = _state.value.copy(
+                strengthDays = updated.keys,
+                strengthDayPlanAssignments = updated
+            )
         }
     }
 

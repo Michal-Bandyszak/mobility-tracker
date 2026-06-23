@@ -46,6 +46,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.DisposableEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.mobilitytracker.data.model.STRENGTH_WORKOUT_PLAN
+import com.mobilitytracker.data.model.StrengthWorkoutDefinition
 import java.time.DayOfWeek
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -124,10 +126,13 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
 
         TrainingDaysCard(
             title = "Dni siłowni",
-            description = "W te dni aplikacja pokaże plan siłowy. Sesje rotują: dzień 1, dzień 2, dzień 1...",
+            description = "Klikaj dzień, żeby przełączać: brak, T1, T2. Aplikacja pokaże wybrany trening w danym dniu.",
             selectedDays = state.strengthDays,
+            strengthAssignments = state.strengthDayPlanAssignments,
             onToggle = { viewModel.toggleStrengthDay(it) }
         )
+
+        StrengthPlansPreviewCard()
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -340,6 +345,7 @@ private fun TrainingDaysCard(
     title: String,
     description: String,
     selectedDays: Set<DayOfWeek>,
+    strengthAssignments: Map<DayOfWeek, Int> = emptyMap(),
     onToggle: (DayOfWeek) -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -367,6 +373,7 @@ private fun TrainingDaysCard(
                             DayToggleButton(
                                 day = day,
                                 selected = day in selectedDays,
+                                strengthPlanDay = strengthAssignments[day],
                                 onToggle = onToggle,
                                 modifier = Modifier.weight(1f)
                             )
@@ -385,10 +392,15 @@ private fun TrainingDaysCard(
 private fun DayToggleButton(
     day: DayOfWeek,
     selected: Boolean,
+    strengthPlanDay: Int? = null,
     onToggle: (DayOfWeek) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val label = day.shortPolishLabel()
+    val label = if (strengthPlanDay != null) {
+        "${day.shortPolishLabel()} T$strengthPlanDay"
+    } else {
+        day.shortPolishLabel()
+    }
     if (selected) {
         Button(
             onClick = { onToggle(day) },
@@ -402,6 +414,52 @@ private fun DayToggleButton(
             modifier = modifier
         ) {
             Text(label)
+        }
+    }
+}
+
+@Composable
+private fun StrengthPlansPreviewCard() {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Podgląd planów siłowych",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium
+            )
+            STRENGTH_WORKOUT_PLAN.forEach { workout ->
+                StrengthPlanPreview(workout = workout)
+            }
+        }
+    }
+}
+
+@Composable
+private fun StrengthPlanPreview(workout: StrengthWorkoutDefinition) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "T${workout.day}: ${workout.title}",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = workout.focus,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            workout.exercises.forEach { exercise ->
+                Text(
+                    text = "${exercise.section}: ${exercise.name} · ${exercise.sets} x ${exercise.reps}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
     }
 }
