@@ -28,13 +28,17 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +59,7 @@ import com.mobilitytracker.data.model.CYCLE_LENGTH
 import com.mobilitytracker.data.model.STRENGTH_RESOURCE_LINKS
 import com.mobilitytracker.data.model.StrengthExerciseDefinition
 import com.mobilitytracker.data.model.StrengthSetLog
+import com.mobilitytracker.data.model.WARMUP_ROUTINE
 import com.mobilitytracker.domain.model.DayWorkout
 import com.mobilitytracker.domain.model.ScheduledStrengthWorkout
 import com.mobilitytracker.ui.components.ExpressiveHeader
@@ -98,6 +103,13 @@ fun TodayScreen(viewModel: TodayViewModel = hiltViewModel()) {
                 onChooseStrengthWorkoutToday = { planDay ->
                     viewModel.chooseStrengthWorkoutToday(planDay)
                 },
+                onChangeStrengthExerciseToday = { slotId, exerciseId ->
+                    viewModel.changeStrengthExerciseToday(slotId, exerciseId)
+                },
+                onRestoreStrengthExerciseToday = { slotId ->
+                    viewModel.restoreStrengthExerciseToday(slotId)
+                },
+                onMessageShown = viewModel::consumeMessage,
                 onRefresh = { viewModel.loadToday() }
             )
         }
@@ -110,6 +122,9 @@ private fun TodayContent(
     onToggle: () -> Unit,
     onSaveStrengthSet: (String, Int, Double?, Int?, Int?) -> Unit,
     onChooseStrengthWorkoutToday: (Int) -> Unit,
+    onChangeStrengthExerciseToday: (String, String) -> Unit,
+    onRestoreStrengthExerciseToday: (String) -> Unit,
+    onMessageShown: () -> Unit,
     onRefresh: () -> Unit
 ) {
     val mobilityWorkout = state.mobilityWorkout
@@ -123,18 +138,27 @@ private fun TodayContent(
     val subtitle = when {
         mobilityWorkout != null && strengthWorkout != null -> "Najpierw rozruszaj ciało, potem przejdź do planu siłowego."
         mobilityWorkout != null -> "Jeden konkretny blok ruchu wystarczy, żeby utrzymać rytm."
-        strengthWorkout != null -> "Masz aktywny trening siłowy i możesz zmienić T1/T2 jednym tapnięciem."
+        strengthWorkout != null -> "Masz aktywny trening siłowy i możesz zmienić A/B jednym tapnięciem."
         else -> "Dzień bez planu. Możesz odpocząć albo odpalić siłownię ręcznie."
     }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(state.message) {
+        state.message?.let {
+            snackbarHostState.showSnackbar(it)
+            onMessageShown()
+        }
+    }
+
     ExpressiveScreen {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 18.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        Box(Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 18.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
             ExpressiveHeader(
                 eyebrow = LocalDate.now().toString(),
                 title = title,
@@ -159,7 +183,9 @@ private fun TodayContent(
                     workout = strengthWorkout,
                     logs = state.strengthLogs,
                     onSaveSet = onSaveStrengthSet,
-                    onChooseStrengthWorkoutToday = onChooseStrengthWorkoutToday
+                    onChooseStrengthWorkoutToday = onChooseStrengthWorkoutToday,
+                    onChangeExercise = onChangeStrengthExerciseToday,
+                    onRestoreExercise = onRestoreStrengthExerciseToday
                 )
             } else {
                 StrengthTodayPickerCard(
@@ -176,6 +202,14 @@ private fun TodayContent(
                     description = "Możesz odpocząć albo zrobić opcjonalne rozciąganie z planu."
                 )
             }
+            }
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp)
+            )
         }
     }
 }
@@ -348,14 +382,18 @@ private fun MobilityWorkoutCard(workout: DayWorkout, onToggle: () -> Unit, onRef
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StrengthWorkoutCard(
     workout: ScheduledStrengthWorkout,
     logs: Map<String, StrengthSetLog>,
     onSaveSet: (String, Int, Double?, Int?, Int?) -> Unit,
-    onChooseStrengthWorkoutToday: (Int) -> Unit
+    onChooseStrengthWorkoutToday: (Int) -> Unit,
+    onChangeExercise: (String, String) -> Unit,
+    onRestoreExercise: (String) -> Unit
 ) {
     val context = LocalContext.current
+    var pickerExercise by remember { mutableStateOf<StrengthExerciseDefinition?>(null) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -385,10 +423,7 @@ private fun StrengthWorkoutCard(
 
             HorizontalDivider()
 
-            Text(
-                text = "Przed treningiem: 3-5 min cardio, rozgrzewka dynamiczna i seria wstępna 8-10 powtórzeń z około 50% ciężaru roboczego.",
-                style = MaterialTheme.typography.bodyMedium
-            )
+            WarmupCard()
 
             STRENGTH_RESOURCE_LINKS.forEach { link ->
                 OutlinedButton(
@@ -405,7 +440,61 @@ private fun StrengthWorkoutCard(
                 StrengthExerciseCard(
                     exercise = exercise,
                     logs = logs,
-                    onSaveSet = onSaveSet
+                    onSaveSet = onSaveSet,
+                    onChange = { pickerExercise = exercise },
+                    onRestore = { onRestoreExercise(exercise.slotId) }
+                )
+            }
+        }
+    }
+
+    pickerExercise?.let { exercise ->
+        ModalBottomSheet(onDismissRequest = { pickerExercise = null }) {
+            Column(
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text("Zmień tylko dzisiaj", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(
+                    "Jutro wróci ćwiczenie z planu bazowego.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                exercise.choices.forEach { choice ->
+                    OutlinedButton(
+                        onClick = {
+                            onChangeExercise(exercise.slotId, choice.id)
+                            pickerExercise = null
+                        },
+                        enabled = choice.id != exercise.id,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(choice.name)
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun WarmupCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text("Rozgrzewka", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            WARMUP_ROUTINE.forEachIndexed { index, step ->
+                Text(
+                    text = "${index + 1}. ${step.name} — ${step.prescription}",
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
         }
@@ -457,13 +546,13 @@ private fun StrengthPlanSwitch(
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         StrengthPlanButton(
-            label = "Zrób dziś T1",
+            label = "Zrób dziś A",
             selected = selectedPlanDay == 1,
             onClick = { onChooseStrengthWorkoutToday(1) },
             modifier = Modifier.weight(1f)
         )
         StrengthPlanButton(
-            label = "Zrób dziś T2",
+            label = "Zrób dziś B",
             selected = selectedPlanDay == 2,
             onClick = { onChooseStrengthWorkoutToday(2) },
             modifier = Modifier.weight(1f)
@@ -493,7 +582,9 @@ private fun StrengthPlanButton(
 private fun StrengthExerciseCard(
     exercise: StrengthExerciseDefinition,
     logs: Map<String, StrengthSetLog>,
-    onSaveSet: (String, Int, Double?, Int?, Int?) -> Unit
+    onSaveSet: (String, Int, Double?, Int?, Int?) -> Unit,
+    onChange: () -> Unit,
+    onRestore: () -> Unit
 ) {
     val context = LocalContext.current
 
@@ -518,6 +609,13 @@ private fun StrengthExerciseCard(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
+            if (exercise.isTodayOverride) {
+                Text(
+                    text = "Zmienione na dziś",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
             Text(
                 text = buildExercisePrescription(exercise),
                 style = MaterialTheme.typography.bodyMedium,
@@ -539,6 +637,15 @@ private fun StrengthExerciseCard(
                 ) {
                     Text("Zobacz technikę")
                 }
+            }
+
+            if (exercise.isTodayOverride) {
+                TextButton(onClick = onRestore, modifier = Modifier.fillMaxWidth()) {
+                    Text("Przywróć z planu")
+                }
+            }
+            TextButton(onClick = onChange, modifier = Modifier.fillMaxWidth()) {
+                Text(if (exercise.isTodayOverride) "Wybierz inne" else "Zmień tylko dzisiaj")
             }
 
             HorizontalDivider()

@@ -66,7 +66,7 @@ class GetTodayWorkoutUseCase @Inject constructor(
         val sessionNumber = workoutRepository.getTotalStrengthSessions(today)
         if (sessionNumber <= 0) return null
 
-        val definition = strengthRepository.getWorkoutByDay(planDay) ?: return null
+        val definition = strengthRepository.getWorkoutForDate(planDay, today) ?: return null
 
         return ScheduledStrengthWorkout(
             date = today,

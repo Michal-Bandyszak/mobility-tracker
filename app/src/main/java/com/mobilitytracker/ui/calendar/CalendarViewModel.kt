@@ -3,6 +3,7 @@ package com.mobilitytracker.ui.calendar
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mobilitytracker.data.model.StrengthSetLog
+import com.mobilitytracker.data.model.TrackingType
 import com.mobilitytracker.data.repository.StrengthRepository
 import com.mobilitytracker.data.repository.WorkoutRepository
 import com.mobilitytracker.domain.model.DayWorkout
@@ -104,14 +105,19 @@ class CalendarViewModel @Inject constructor(
         strengthHistoryJob = viewModelScope.launch {
             strengthRepository.observeAllLogs().collectLatest { logs ->
                 _state.value = _state.value.copy(
-                    strengthHistory = logs.toStrengthCalendarEntries()
+                    strengthHistory = logs.toStrengthCalendarEntries(
+                        strengthRepository.getExerciseCatalog().associateBy { it.id }
+                    )
                 )
             }
         }
     }
 
-    private fun List<StrengthSetLog>.toStrengthCalendarEntries(): List<StrengthCalendarEntry> =
+    private fun List<StrengthSetLog>.toStrengthCalendarEntries(
+        exercises: Map<String, com.mobilitytracker.data.model.ExerciseCatalogEntry>
+    ): List<StrengthCalendarEntry> =
         asSequence()
+            .filter { exercises[it.exerciseId]?.trackingType != TrackingType.NONE }
             .mapNotNull { log ->
                 val date = runCatching { LocalDate.parse(log.date) }.getOrNull()
                 if (date != null) (date to log.planDay) to log else null

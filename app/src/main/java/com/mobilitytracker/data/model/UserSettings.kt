@@ -20,6 +20,7 @@ object SettingsKeys {
     const val STRENGTH_DAYS = "strength_days"
     const val STRENGTH_DAY_PLAN_ASSIGNMENTS = "strength_day_plan_assignments"
     const val STRENGTH_PLAN_OVERRIDE_PREFIX = "strength_plan_override_"
+    const val STRENGTH_EXERCISE_OVERRIDE_PREFIX = "strength_exercise_override_"
     const val MOBILITY_ANCHOR_DATE = "mobility_anchor_date"
     const val MOBILITY_SESSIONS_AT_ANCHOR = "mobility_sessions_at_anchor"
     const val STRENGTH_ANCHOR_DATE = "strength_anchor_date"

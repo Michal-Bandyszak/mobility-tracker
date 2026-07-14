@@ -50,6 +50,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.DisposableEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.mobilitytracker.data.model.STRENGTH_WORKOUT_PLAN
+import com.mobilitytracker.data.model.WARMUP_ROUTINE
 import com.mobilitytracker.data.model.StrengthWorkoutDefinition
 import java.time.DayOfWeek
 
@@ -149,7 +150,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
 
         TrainingDaysCard(
             title = "Dni siłowni",
-            description = "Klikaj dzień, żeby przełączać: brak, T1, T2. Aplikacja pokaże wybrany trening w danym dniu.",
+            description = "Klikaj dzień, żeby przełączać: brak, A, B. Aplikacja pokaże wybrany trening w danym dniu.",
             selectedDays = state.strengthDays,
             strengthAssignments = state.strengthDayPlanAssignments,
             onToggle = { viewModel.toggleStrengthDay(it) }
@@ -269,7 +270,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = "Reset usuwa datę startu, ukończenia mobilności, logi siłowe i jednorazowe wybory T1/T2. Harmonogram dni oraz przypomnienia zostają.",
+                    text = "Reset usuwa datę startu, ukończenia mobilności, logi siłowe i jednorazowe wybory A/B oraz ćwiczeń. Harmonogram dni oraz przypomnienia zostają.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -343,7 +344,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             onDismissRequest = { showResetDialog = false },
             title = { Text("Resetować flow?") },
             text = {
-                Text("Po resecie aplikacja wróci do ekranu startu programu. Historia ukończeń, logi serii i jednorazowe wybory T1/T2 zostaną usunięte.")
+                Text("Po resecie aplikacja wróci do ekranu startu programu. Historia ukończeń, logi serii i jednorazowe wybory A/B oraz ćwiczeń zostaną usunięte.")
             },
             confirmButton = {
                 Button(onClick = {
@@ -448,13 +449,23 @@ private fun StrengthPlansPreviewCard() {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Podgląd planów siłowych",
+            text = "Plan bazowy",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium
             )
             STRENGTH_WORKOUT_PLAN.forEach { workout ->
                 StrengthPlanPreview(workout = workout)
             }
+            Text(
+                text = "Ćwiczenia możesz podmieniać na jeden dzień na ekranie Dzisiaj.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "Wspólna rozgrzewka: ${WARMUP_ROUTINE.joinToString { it.name }}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -467,7 +478,7 @@ private fun StrengthPlanPreview(workout: StrengthWorkoutDefinition) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "T${workout.day}: ${workout.title}",
+                text = workout.title,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )

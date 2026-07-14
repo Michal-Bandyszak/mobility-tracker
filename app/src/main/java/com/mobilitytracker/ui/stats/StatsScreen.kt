@@ -251,7 +251,7 @@ private fun StrengthStatsSection(strengthStats: StrengthStats) {
     if (strengthStats.recentSessions.isNotEmpty()) {
         SectionHeader(
             title = "Ostatnie sesje",
-            subtitle = "Czytelny zapis ostatnich treningów T1/T2."
+            subtitle = "Czytelny zapis ostatnich treningów A/B."
         )
         strengthStats.recentSessions.forEach { session ->
             SessionSummaryCard(session = session)

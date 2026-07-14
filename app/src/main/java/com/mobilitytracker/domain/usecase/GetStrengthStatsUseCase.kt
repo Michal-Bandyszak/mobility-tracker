@@ -29,10 +29,18 @@ class GetStrengthStatsUseCase @Inject constructor(
 
     private fun buildStats(logs: List<StrengthSetLog>): StrengthStats {
         val workouts = strengthRepository.getAllWorkouts()
-        val exercises = workouts
-            .flatMap { it.exercises }
-            .distinctBy { it.id }
-            .associateBy { it.id }
+        val exercises = strengthRepository.getExerciseCatalog().associate { entry ->
+            entry.id to StrengthExerciseDefinition(
+                id = entry.id,
+                section = entry.section,
+                name = entry.name,
+                sets = 0,
+                reps = "",
+                notes = entry.notes,
+                videoUrl = entry.videoUrl,
+                trackingType = entry.trackingType
+            )
+        }
 
         val trackedLogs = logs.filter { log ->
             val trackingType = exercises[log.exerciseId]?.trackingType ?: TrackingType.NONE

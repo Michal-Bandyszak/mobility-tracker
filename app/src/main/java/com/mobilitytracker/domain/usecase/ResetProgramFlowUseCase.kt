@@ -14,5 +14,6 @@ class ResetProgramFlowUseCase @Inject constructor(
         workoutRepository.clearProgramFlowSettings()
         completionRepository.deleteAllCompletions()
         strengthRepository.deleteAllLogs()
+        strengthRepository.clearExerciseOverrides()
     }
 }

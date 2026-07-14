@@ -27,7 +27,8 @@ data class TodayUiState(
     val strengthWorkout: ScheduledStrengthWorkout? = null,
     val strengthLogs: Map<String, StrengthSetLog> = emptyMap(),
     val completedCycles: Int = 0,
-    val currentStreak: Int = 0
+    val currentStreak: Int = 0,
+    val message: String? = null
 )
 
 @HiltViewModel
@@ -48,10 +49,10 @@ class TodayViewModel @Inject constructor(
         loadToday()
     }
 
-    fun loadToday() {
+    fun loadToday(showLoading: Boolean = true) {
         viewModelScope.launch {
             videoResolver.refreshCache()
-            _state.value = TodayUiState(isLoading = true)
+            if (showLoading) _state.value = _state.value.copy(isLoading = true)
             try {
                 when (val result = getTodayWorkout()) {
                     is GetTodayWorkoutUseCase.Result.ProgramNotStarted -> {
@@ -59,7 +60,7 @@ class TodayViewModel @Inject constructor(
                         _state.value = TodayUiState(isLoading = false, programNotStarted = true)
                     }
                     is GetTodayWorkoutUseCase.Result.Success -> {
-                        _state.value = TodayUiState(
+                        _state.value = _state.value.copy(
                             isLoading = false,
                             programNotStarted = false,
                             mobilityWorkout = result.plan.mobilityWorkout,
@@ -70,7 +71,7 @@ class TodayViewModel @Inject constructor(
                 }
             } catch (_: Exception) {
                 strengthLogsJob?.cancel()
-                _state.value = TodayUiState(isLoading = false, programNotStarted = true)
+                _state.value = _state.value.copy(isLoading = false, message = "Nie udało się odświeżyć planu. Spróbuj ponownie.")
             }
         }
     }
@@ -115,8 +116,49 @@ class TodayViewModel @Inject constructor(
     fun chooseStrengthWorkoutToday(planDay: Int) {
         viewModelScope.launch {
             workoutRepository.saveStrengthPlanOverrideForDate(LocalDate.now(), planDay)
-            loadToday()
+            loadToday(showLoading = false)
         }
+    }
+
+    fun changeStrengthExerciseToday(slotId: String, exerciseId: String) {
+        val workout = _state.value.strengthWorkout ?: return
+        val exercise = workout.definition.exercises.find { it.slotId == slotId } ?: return
+        if (_state.value.strengthLogs.keys.any { it.startsWith("${exercise.id}:") }) {
+            _state.value = _state.value.copy(message = "Nie można zmienić ćwiczenia po zapisaniu serii.")
+            return
+        }
+
+        viewModelScope.launch {
+            val saved = strengthRepository.saveExerciseOverrideForDate(
+                workout.date,
+                workout.planDay,
+                slotId,
+                exerciseId
+            )
+            _state.value = _state.value.copy(
+                message = if (saved) "Zmieniono tylko na dziś." else "Nie można wybrać tego ćwiczenia w tym miejscu planu."
+            )
+            if (saved) loadToday(showLoading = false)
+        }
+    }
+
+    fun restoreStrengthExerciseToday(slotId: String) {
+        val workout = _state.value.strengthWorkout ?: return
+        val exercise = workout.definition.exercises.find { it.slotId == slotId } ?: return
+        if (_state.value.strengthLogs.keys.any { it.startsWith("${exercise.id}:") }) {
+            _state.value = _state.value.copy(message = "Nie można zmienić ćwiczenia po zapisaniu serii.")
+            return
+        }
+
+        viewModelScope.launch {
+            strengthRepository.clearExerciseOverrideForDate(workout.date, workout.planDay, slotId)
+            _state.value = _state.value.copy(message = "Przywrócono ćwiczenie z planu bazowego.")
+            loadToday(showLoading = false)
+        }
+    }
+
+    fun consumeMessage() {
+        _state.value = _state.value.copy(message = null)
     }
 
     private fun observeStrengthLogs(strengthWorkout: ScheduledStrengthWorkout?) {
