@@ -32,4 +32,13 @@ class StrengthWorkoutPlanTest {
         assertNotNull(plan)
         assertEquals("single_leg_hip_thrust", plan!!.exercises.single { it.slotId == "day1_hip_extension" }.id)
     }
+
+    @Test
+    fun `every exercise has a YouTube technique link`() {
+        assertTrue(
+            getStrengthExerciseCatalog().all { entry ->
+                entry.videoUrl?.startsWith("https://www.youtube.com/results?") == true
+            }
+        )
+    }
 }

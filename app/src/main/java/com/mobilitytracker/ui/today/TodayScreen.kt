@@ -646,7 +646,7 @@ private fun StrengthExerciseCard(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Zobacz technikę")
+                    Text("Zobacz technikę na YouTube")
                 }
             }
 

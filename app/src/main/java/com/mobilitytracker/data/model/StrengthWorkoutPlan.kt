@@ -1,5 +1,7 @@
 package com.mobilitytracker.data.model
 
+import java.net.URLEncoder
+
 enum class TrackingType {
     WEIGHT_AND_REPS,
     REPS_ONLY,
@@ -80,7 +82,7 @@ val STRENGTH_RESOURCE_LINKS = listOf(
 
 val WARMUP_ROUTINE = listOf(
     WarmupStep("warmup_90_90", "90/90", "8 powtórzeń na stronę"),
-    WarmupStep("warmup_bodyweight_hip_thrust", "Hip thrust obunóż bez obciążenia", "10 powtórzeń"),
+    WarmupStep("warmup_bodyweight_hip_thrust", "Unoszenie bioder obunóż bez obciążenia", "10 powtórzeń"),
     WarmupStep("warmup_cat_cow", "Koci grzbiet", "8 powtórzeń"),
     WarmupStep("warmup_up_down_dog", "Pies z głową w górę / w dół", "6 płynnych przejść"),
     WarmupStep("warmup_lunge_thoracic_rotation", "Rotacje tułowia w wykroku", "10 na stronę"),
@@ -95,40 +97,48 @@ private fun exercise(
     section: String,
     trackingType: TrackingType,
     notes: String = "",
-    videoUrl: String? = null,
     selectable: Boolean = true
-) = ExerciseCatalogEntry(id, name, section, notes, videoUrl, trackingType, selectable)
+) = ExerciseCatalogEntry(
+    id = id,
+    name = name,
+    section = section,
+    notes = notes,
+    videoUrl = "https://www.youtube.com/results?search_query=" +
+        URLEncoder.encode("$name technika ćwiczenia", "UTF-8"),
+    trackingType = trackingType,
+    selectable = selectable
+)
 
 val EXERCISE_CATALOG = listOf(
-    exercise("day1_cuban_rotation", "Cuban rotation z gumą lub hantlami", "Aktywacja", TrackingType.NONE, selectable = false),
-    exercise("day1_monster_walk", "Monster walk z gumą", "Aktywacja", TrackingType.NONE, selectable = false),
-    exercise("day2_banded_glute_bridge", "Glute bridge z gumą", "Aktywacja", TrackingType.NONE, selectable = false),
-    exercise("day2_9090_hip_lift", "90/90 hip lift", "Aktywacja", TrackingType.NONE, selectable = false),
-    exercise("day1_dumbbell_rdl", "RDL z hantlami", "Główne", TrackingType.WEIGHT_AND_REPS, selectable = false),
-    exercise("day1_goblet_squat_pause", "Przysiad goblet z pauzą", "Główne", TrackingType.WEIGHT_AND_REPS, "Pauza w dole ruchu, pełna kontrola pozycji.", "https://www.youtube.com/watch?v=gm4ln6PO4rc"),
-    exercise("day1_box_squat", "Przysiad do boxa z hantlem", "Główne", TrackingType.WEIGHT_AND_REPS, "Kontroluj zejście i wygodny zakres ruchu."),
-    exercise("single_leg_hip_thrust", "Hip thrust jednonóż", "Główne", TrackingType.WEIGHT_AND_REPS, "Zacznij bez obciążenia; przerwij przy bólu biodra."),
-    exercise("day1_glute_bridge", "Glute bridge obunóż", "Główne", TrackingType.WEIGHT_AND_REPS, "Pauza w górze, żebra schowane."),
-    exercise("day1_dumbbell_bench_press", "Wyciskanie hantli na ławce poziomej", "Główne", TrackingType.WEIGHT_AND_REPS, "Łokcie około 45 stopni względem tułowia.", "https://barbend.com/dumbbell-bench-press/"),
+    exercise("day1_cuban_rotation", "Rotacja kubańska z gumą lub hantlami", "Aktywacja", TrackingType.NONE, selectable = false),
+    exercise("day1_monster_walk", "Chód bokiem z gumą", "Aktywacja", TrackingType.NONE, selectable = false),
+    exercise("day2_banded_glute_bridge", "Most biodrowy z gumą", "Aktywacja", TrackingType.NONE, selectable = false),
+    exercise("day2_9090_hip_lift", "Unoszenie bioder 90/90", "Aktywacja", TrackingType.NONE, selectable = false),
+    exercise("day1_dumbbell_rdl", "Martwy ciąg rumuński z hantlami", "Główne", TrackingType.WEIGHT_AND_REPS, selectable = false),
+    exercise("day1_goblet_squat_pause", "Przysiad kielichowy z pauzą", "Główne", TrackingType.WEIGHT_AND_REPS, "Pauza w dole ruchu, pełna kontrola pozycji."),
+    exercise("day1_box_squat", "Przysiad do podwyższenia z hantlem", "Główne", TrackingType.WEIGHT_AND_REPS, "Kontroluj zejście i wygodny zakres ruchu."),
+    exercise("single_leg_hip_thrust", "Unoszenie bioder jednonóż", "Główne", TrackingType.WEIGHT_AND_REPS, "Zacznij bez obciążenia; przerwij przy bólu biodra."),
+    exercise("day1_glute_bridge", "Most biodrowy obunóż", "Główne", TrackingType.WEIGHT_AND_REPS, "Pauza w górze, żebra schowane."),
+    exercise("day1_dumbbell_bench_press", "Wyciskanie hantli na ławce poziomej", "Główne", TrackingType.WEIGHT_AND_REPS, "Łokcie około 45 stopni względem tułowia."),
     exercise("day1_dumbbell_floor_press", "Wyciskanie hantli na podłodze", "Główne", TrackingType.WEIGHT_AND_REPS, "Zatrzymaj łokcie miękko na podłodze."),
-    exercise("day1_lat_pulldown", "Podciąganie nachwytem / lat pulldown", "Główne", TrackingType.WEIGHT_AND_REPS, "Pełen zakres ruchu, kontroluj łopatki.", "https://gymkee.com/exercises/lats/lat-pulldown/"),
+    exercise("day1_lat_pulldown", "Podciąganie nachwytem / ściąganie drążka wyciągu górnego", "Główne", TrackingType.WEIGHT_AND_REPS, "Pełen zakres ruchu, kontroluj łopatki."),
     exercise("day1_one_arm_row", "Wiosłowanie hantlem jednorącz", "Główne", TrackingType.WEIGHT_AND_REPS, "Stabilny tułów, prowadź łokieć do biodra."),
-    exercise("day1_lateral_raise", "Wznosy ramion bokiem", "Dodatkowe", TrackingType.WEIGHT_AND_REPS, "Lekkie ciężary, bez bujania tułowiem.", "https://grabgains.com/exercises/dumbbell-lateral-raise"),
+    exercise("day1_lateral_raise", "Wznosy ramion bokiem", "Dodatkowe", TrackingType.WEIGHT_AND_REPS, "Lekkie ciężary, bez bujania tułowiem."),
     exercise("day1_rear_delt_raise", "Odwrotne rozpiętki z hantlami", "Dodatkowe", TrackingType.WEIGHT_AND_REPS, "Prowadź ruch łopatkami, bez szarpania."),
-    exercise("day1_supinated_curl", "Uginanie ramion z hantlami z supinacją", "Dodatkowe", TrackingType.WEIGHT_AND_REPS, "Bez bujania, łokcie stabilnie przy tułowiu.", "https://www.drugs.com/video/video-biceps-curl-with-dumbbell-285/"),
+    exercise("day1_supinated_curl", "Uginanie ramion z hantlami z supinacją", "Dodatkowe", TrackingType.WEIGHT_AND_REPS, "Bez bujania, łokcie stabilnie przy tułowiu."),
     exercise("day1_hammer_curl", "Uginanie młotkowe z hantlami", "Dodatkowe", TrackingType.WEIGHT_AND_REPS, "Nadgarstki neutralnie, łokcie blisko tułowia."),
-    exercise("day1_deadbug", "Crunching skywalkers / deadbug", "Dodatkowe", TrackingType.REPS_ONLY, "Kontrola tułowia i oddechu.", "https://www.nasm.org/resource-center/exercise-library/dead-bug"),
-    exercise("day1_bird_dog", "Bird dog", "Dodatkowe", TrackingType.REPS_ONLY, "Powoli, bez rotacji tułowia."),
-    exercise("day2_hip_thrust", "Hip thrust ze sztangą / gumą", "Główne", TrackingType.WEIGHT_AND_REPS, "Pauza w górze, żebra schowane, mocne spięcie pośladków.", "https://gravitus.com/guides/exercises/barbell-hip-thrust/"),
-    exercise("day2_split_squat", "Split squat z hantlami", "Główne", TrackingType.WEIGHT_AND_REPS, "Kontrola pozycji, stabilny tułów i kolano.", "https://weighttraining.guide/exercises/dumbbell-split-squat/"),
-    exercise("day2_step_up", "Step-up z hantlami", "Główne", TrackingType.WEIGHT_AND_REPS, "Wchodź kontrolowanie, bez odbijania tylną nogą."),
-    exercise("day2_incline_db_press", "Incline DB Press", "Główne", TrackingType.WEIGHT_AND_REPS, "Skos 30-45 stopni, pełen kontrolowany zakres.", "https://gravitus.com/guides/exercises/incline-dumbbell-press/"),
-    exercise("day2_seated_row", "Seated row / low cable row", "Główne", TrackingType.WEIGHT_AND_REPS, "Jedna sekunda spięcia w końcówce ruchu.", "https://gym.com/exercises/seated-cable-row"),
-    exercise("day2_face_pull", "Face pull", "Dodatkowe", TrackingType.WEIGHT_AND_REPS, "Z zatrzymaniem, łokcie wysoko, bez szarpania.", "https://www.nasm.org/resource-center/exercise-library/face-pull"),
-    exercise("day2_triceps_rope_extension", "Triceps rope extension", "Dodatkowe", TrackingType.WEIGHT_AND_REPS, "Bez machania tułowiem, pełny wyprost łokcia.", "https://trainest.com/exercise/triceps-pushdown"),
+    exercise("day1_deadbug", "Naprzemienny wyprost ręki i nogi w leżeniu", "Dodatkowe", TrackingType.REPS_ONLY, "Kontrola tułowia i oddechu."),
+    exercise("day1_bird_dog", "Naprzemienny wyprost ręki i nogi w klęku", "Dodatkowe", TrackingType.REPS_ONLY, "Powoli, bez rotacji tułowia."),
+    exercise("day2_hip_thrust", "Unoszenie bioder ze sztangą / gumą", "Główne", TrackingType.WEIGHT_AND_REPS, "Pauza w górze, żebra schowane, mocne spięcie pośladków."),
+    exercise("day2_split_squat", "Przysiad wykroczny z hantlami", "Główne", TrackingType.WEIGHT_AND_REPS, "Kontrola pozycji, stabilny tułów i kolano."),
+    exercise("day2_step_up", "Wejścia na podwyższenie z hantlami", "Główne", TrackingType.WEIGHT_AND_REPS, "Wchodź kontrolowanie, bez odbijania tylną nogą."),
+    exercise("day2_incline_db_press", "Wyciskanie hantli na ławce skośnej", "Główne", TrackingType.WEIGHT_AND_REPS, "Skos 30-45 stopni, pełen kontrolowany zakres."),
+    exercise("day2_seated_row", "Wiosłowanie siedząc na wyciągu dolnym", "Główne", TrackingType.WEIGHT_AND_REPS, "Jedna sekunda spięcia w końcówce ruchu."),
+    exercise("day2_face_pull", "Przyciąganie liny do twarzy", "Dodatkowe", TrackingType.WEIGHT_AND_REPS, "Z zatrzymaniem, łokcie wysoko, bez szarpania."),
+    exercise("day2_triceps_rope_extension", "Prostowanie ramion na wyciągu z liną", "Dodatkowe", TrackingType.WEIGHT_AND_REPS, "Bez machania tułowiem, pełny wyprost łokcia."),
     exercise("day2_overhead_triceps_extension", "Francuskie wyciskanie hantla", "Dodatkowe", TrackingType.WEIGHT_AND_REPS, "Łokcie stabilnie, bez pogłębiania bólu nadgarstka."),
-    exercise("day2_plank", "Plank", "Dodatkowe", TrackingType.TIME_ONLY, "Napięcie brzucha i pośladków, neutralny kręgosłup.", "https://en.wikipedia.org/wiki/Plank_(exercise)"),
-    exercise("day2_side_plank", "Side plank", "Dodatkowe", TrackingType.TIME_ONLY, "Utrzymuj linię bark-biodro-kolano lub stopa.")
+    exercise("day2_plank", "Deska", "Dodatkowe", TrackingType.TIME_ONLY, "Napięcie brzucha i pośladków, neutralny kręgosłup."),
+    exercise("day2_side_plank", "Deska bokiem", "Dodatkowe", TrackingType.TIME_ONLY, "Utrzymuj linię bark-biodro-kolano lub stopa.")
 ).associateBy { it.id }
 
 private data class StrengthWorkoutTemplate(
@@ -154,7 +164,7 @@ private val STRENGTH_WORKOUT_TEMPLATES = listOf(
     StrengthWorkoutTemplate(
         day = 1,
         title = "Trening A",
-        focus = "Full body: przysiad, hip thrust, poziome pchanie i pionowe przyciąganie",
+        focus = "Całe ciało: przysiad, unoszenie bioder, poziome pchanie i pionowe przyciąganie",
         slots = listOf(
             slot("day1_squat", "day1_goblet_squat_pause", listOf("day1_box_squat"), "Główne", 3, "10", "31x1", "RIR2", 90),
             slot("day1_hip_extension", "single_leg_hip_thrust", listOf("day1_glute_bridge"), "Główne", 3, "10/str", "3010", "RIR2", 90),
@@ -168,7 +178,7 @@ private val STRENGTH_WORKOUT_TEMPLATES = listOf(
     StrengthWorkoutTemplate(
         day = 2,
         title = "Trening B",
-        focus = "Full body: hip thrust, unilateralne nogi, skos dodatni i wiosłowanie",
+        focus = "Całe ciało: unoszenie bioder, ćwiczenie jednostronne na nogi, skos dodatni i wiosłowanie",
         slots = listOf(
             slot("day2_hip_extension", "day2_hip_thrust", listOf("day1_glute_bridge"), "Główne", 3, "10-12", "3010", "RIR2", 90),
             slot("day2_unilateral_legs", "day2_split_squat", listOf("day2_step_up"), "Główne", 3, "8/str", "3010", "RIR2", 90),
