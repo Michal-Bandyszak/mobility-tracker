@@ -43,13 +43,9 @@ class WorkoutRepository @Inject constructor(
         settingsDao.delete(SettingsKeys.PROGRAM_START_DATE)
     }
 
-    suspend fun clearProgramFlowSettings() {
-        settingsDao.delete(SettingsKeys.PROGRAM_START_DATE)
-        settingsDao.delete(SettingsKeys.MOBILITY_ANCHOR_DATE)
-        settingsDao.delete(SettingsKeys.MOBILITY_SESSIONS_AT_ANCHOR)
-        settingsDao.delete(SettingsKeys.STRENGTH_ANCHOR_DATE)
-        settingsDao.delete(SettingsKeys.STRENGTH_SESSIONS_AT_ANCHOR)
-        clearStrengthPlanOverrides()
+    suspend fun resetMobilityProgress(today: LocalDate = LocalDate.now()) {
+        settingsDao.upsert(UserSettings(SettingsKeys.MOBILITY_ANCHOR_DATE, today.minusDays(1).toString()))
+        settingsDao.upsert(UserSettings(SettingsKeys.MOBILITY_SESSIONS_AT_ANCHOR, "0"))
     }
 
     fun observeProgramStartDate(): Flow<String?> =
@@ -232,12 +228,6 @@ class WorkoutRepository @Inject constructor(
 
     suspend fun clearStrengthPlanOverrideForDate(date: LocalDate) {
         settingsDao.delete(strengthPlanOverrideKey(date))
-    }
-
-    private suspend fun clearStrengthPlanOverrides() {
-        settingsDao.getAllSettings()
-            .filter { it.key.startsWith(SettingsKeys.STRENGTH_PLAN_OVERRIDE_PREFIX) }
-            .forEach { settingsDao.delete(it.key) }
     }
 
     private suspend fun getStrengthPlanOverrideForDate(date: LocalDate): Int? =

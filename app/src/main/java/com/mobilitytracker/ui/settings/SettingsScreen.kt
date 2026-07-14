@@ -265,12 +265,12 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Reset flow",
+                    text = "Reset mobilności",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = "Reset usuwa datę startu, ukończenia mobilności, logi siłowe i jednorazowe wybory A/B oraz ćwiczeń. Harmonogram dni oraz przypomnienia zostają.",
+                    text = "Resetuje tylko postęp i ukończenia mobilności. Serie siłowe, historia, plan A/B oraz podmiany ćwiczeń zostają.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -278,7 +278,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     onClick = { showResetDialog = true },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Resetuj flow")
+                    Text("Resetuj mobilność")
                 }
             }
         }
@@ -342,16 +342,16 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     if (showResetDialog) {
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
-            title = { Text("Resetować flow?") },
+            title = { Text("Resetować mobilność?") },
             text = {
-                Text("Po resecie aplikacja wróci do ekranu startu programu. Historia ukończeń, logi serii i jednorazowe wybory A/B oraz ćwiczeń zostaną usunięte.")
+                Text("Mobilność zacznie się od pierwszej najbliższej sesji. Serie siłowe, historia oraz plan A/B zostaną zachowane.")
             },
             confirmButton = {
                 Button(onClick = {
                     viewModel.resetFlow()
                     showResetDialog = false
                 }) {
-                    Text("Resetuj")
+                    Text("Resetuj mobilność")
                 }
             },
             dismissButton = {

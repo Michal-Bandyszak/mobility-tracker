@@ -43,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -273,6 +274,7 @@ private fun TodayPlanPanel(
 @Composable
 private fun MobilityWorkoutCard(workout: DayWorkout, onToggle: () -> Unit, onRefresh: () -> Unit) {
     val context = LocalContext.current
+    var expanded by rememberSaveable { mutableStateOf(true) }
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(
@@ -280,31 +282,38 @@ private fun MobilityWorkoutCard(workout: DayWorkout, onToggle: () -> Unit, onRef
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "CYKL ${workout.cycleNumber}",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "Film ${workout.videoOrder} / $CYCLE_LENGTH",
-                style = MaterialTheme.typography.titleMedium
-            )
+            Column {
+                Text(
+                    text = "MOBILNOŚĆ • CYKL ${workout.cycleNumber}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Film ${workout.videoOrder} / $CYCLE_LENGTH",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            TextButton(onClick = { expanded = !expanded }) {
+                Text(if (expanded) "Zwiń" else "Rozwiń")
+            }
         }
 
-        LinearProgressIndicator(
-            progress = { workout.videoOrder.toFloat() / CYCLE_LENGTH },
-            modifier = Modifier.fillMaxWidth()
-        )
+        AnimatedVisibility(visible = expanded) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                LinearProgressIndicator(
+                    progress = { workout.videoOrder.toFloat() / CYCLE_LENGTH },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
                     text = workout.definition.title,
@@ -380,6 +389,8 @@ private fun MobilityWorkoutCard(workout: DayWorkout, onToggle: () -> Unit, onRef
             }
         }
     }
+}
+}
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -94,16 +94,6 @@ class StrengthRepository @Inject constructor(
         )
     }
 
-    suspend fun deleteAllLogs() {
-        strengthLogDao.deleteAll()
-    }
-
-    suspend fun clearExerciseOverrides() {
-        settingsDao.getAllSettings()
-            .filter { it.key.startsWith(SettingsKeys.STRENGTH_EXERCISE_OVERRIDE_PREFIX) }
-            .forEach { settingsDao.delete(it.key) }
-    }
-
     private suspend fun getExerciseOverridesForDate(date: LocalDate, planDay: Int): Map<String, String> {
         val workout = getWorkoutByDay(planDay) ?: return emptyMap()
         return workout.exercises.mapNotNull { exercise ->
