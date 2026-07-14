@@ -31,7 +31,8 @@ data class SettingsUiState(
     val hasNotificationPermission: Boolean = true,
     val mobilityDays: Set<DayOfWeek> = emptySet(),
     val strengthDays: Set<DayOfWeek> = emptySet(),
-    val strengthDayPlanAssignments: Map<DayOfWeek, Int> = emptyMap()
+    val strengthDayPlanAssignments: Map<DayOfWeek, Int> = emptyMap(),
+    val themeMode: String = "system"
 )
 
 @HiltViewModel
@@ -68,7 +69,8 @@ class SettingsViewModel @Inject constructor(
                 hasNotificationPermission = hasNotifPermission,
                 mobilityDays = mobilityDays,
                 strengthDays = strengthDayPlanAssignments.keys,
-                strengthDayPlanAssignments = strengthDayPlanAssignments
+                strengthDayPlanAssignments = strengthDayPlanAssignments,
+                themeMode = workoutRepository.getThemeMode()
             )
         }
     }
@@ -144,6 +146,13 @@ class SettingsViewModel @Inject constructor(
                 strengthDays = updated.keys,
                 strengthDayPlanAssignments = updated
             )
+        }
+    }
+
+    fun setThemeMode(mode: String) {
+        viewModelScope.launch {
+            workoutRepository.saveThemeMode(mode)
+            _state.value = _state.value.copy(themeMode = mode)
         }
     }
 

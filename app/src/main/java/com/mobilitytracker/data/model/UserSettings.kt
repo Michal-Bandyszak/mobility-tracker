@@ -24,4 +24,5 @@ object SettingsKeys {
     const val MOBILITY_SESSIONS_AT_ANCHOR = "mobility_sessions_at_anchor"
     const val STRENGTH_ANCHOR_DATE = "strength_anchor_date"
     const val STRENGTH_SESSIONS_AT_ANCHOR = "strength_sessions_at_anchor"
+    const val THEME_MODE = "theme_mode"
 }

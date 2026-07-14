@@ -25,32 +25,11 @@ fun ExpressiveScreen(
     content: @Composable () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val baseBrush = Brush.verticalGradient(
-        listOf(
-            colorScheme.secondaryContainer.copy(alpha = 0.30f),
-            colorScheme.background,
-            colorScheme.background
-        )
-    )
-    val topBandBrush = Brush.linearGradient(
-        listOf(
-            colorScheme.primaryContainer.copy(alpha = 0.62f),
-            colorScheme.secondaryContainer.copy(alpha = 0.38f),
-            Color.Transparent
-        )
-    )
-
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(baseBrush)
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(210.dp)
-                .background(topBandBrush)
-        )
         content()
     }
 }
@@ -64,7 +43,7 @@ fun ExpressiveHeader(
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp) // Slightly more breathing room
     ) {
         Text(
             text = eyebrow.uppercase(),
@@ -75,12 +54,11 @@ fun ExpressiveHeader(
         Text(
             text = title,
             style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-            fontWeight = FontWeight.Black
+            color = MaterialTheme.colorScheme.onBackground
         )
         Text(
             text = subtitle,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge, // Larger, softer subtitle
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
@@ -89,15 +67,15 @@ fun ExpressiveHeader(
 @Composable
 fun ExpressivePanel(
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+    containerColor: Color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f), // Slightly more transparent for glass effect
     content: @Composable () -> Unit
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(24.dp), // Ethereal Minimal: large, soft squircles
         color = containerColor,
-        tonalElevation = 2.dp,
-        shadowElevation = 1.dp,
+        tonalElevation = 0.dp, // Flat, relying on color contrast
+        shadowElevation = 0.dp, // No shadow for clean glass effect
         content = content
     )
 }
@@ -111,22 +89,22 @@ fun StatusPill(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
-        color = color.copy(alpha = 0.14f)
+        shape = RoundedCornerShape(percent = 50), // Fully rounded pill
+        color = color.copy(alpha = 0.1f) // Even softer background
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = color.copy(alpha = 0.8f) // Colored label for cohesion
             )
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = color, // Colored value
                 fontWeight = FontWeight.Bold
             )
         }

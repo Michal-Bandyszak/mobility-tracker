@@ -55,6 +55,16 @@ class WorkoutRepository @Inject constructor(
     fun observeProgramStartDate(): Flow<String?> =
         settingsDao.observeValue(SettingsKeys.PROGRAM_START_DATE)
 
+    suspend fun getThemeMode(): String =
+        settingsDao.getValue(SettingsKeys.THEME_MODE) ?: "system"
+
+    suspend fun saveThemeMode(mode: String) {
+        settingsDao.upsert(UserSettings(SettingsKeys.THEME_MODE, mode))
+    }
+
+    fun observeThemeMode(): Flow<String?> =
+        settingsDao.observeValue(SettingsKeys.THEME_MODE)
+
     fun calculateCurrentDay(startDate: LocalDate, today: LocalDate = LocalDate.now()): Int {
         return ChronoUnit.DAYS.between(startDate, today).toInt()
     }

@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -111,11 +114,31 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "Ustawienia",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Ustawienia",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            val isDark = state.themeMode == "dark" || (state.themeMode == "system" && androidx.compose.foundation.isSystemInDarkTheme())
+            androidx.compose.material3.IconButton(
+                onClick = { viewModel.setThemeMode(if (isDark) "light" else "dark") }
+            ) {
+                val icon = if (isDark) {
+                    Icons.Outlined.LightMode
+                } else {
+                    Icons.Outlined.DarkMode
+                }
+                androidx.compose.material3.Icon(
+                    imageVector = icon,
+                    contentDescription = if (isDark) "Zmień na jasny" else "Zmień na ciemny"
+                )
+            }
+        }
 
         TrainingDaysCard(
             title = "Dni mobilności",
@@ -286,7 +309,6 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             }
         }
     }
-
     // Dialog z TimePickerem — przyciski zawsze widoczne
     if (showTimePicker) {
         val timePickerState = rememberTimePickerState(

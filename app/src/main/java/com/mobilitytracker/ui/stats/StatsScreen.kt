@@ -129,25 +129,16 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
 
 @Composable
 private fun StatsHeroCard(strengthStats: StrengthStats) {
-    val heroBrush = Brush.linearGradient(
-        listOf(
-            MaterialTheme.colorScheme.primaryContainer,
-            MaterialTheme.colorScheme.secondaryContainer,
-            MaterialTheme.colorScheme.tertiaryContainer
-        )
-    )
-    val contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+    val contentColor = MaterialTheme.colorScheme.onSurface
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
-            modifier = Modifier
-                .background(heroBrush)
-                .padding(22.dp),
+            modifier = Modifier.padding(22.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
             Text(
@@ -193,7 +184,7 @@ private fun HeroMetric(label: String, value: String, modifier: Modifier = Modifi
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(24.dp))
             .background(contentColor.copy(alpha = 0.10f))
             .padding(12.dp)
     ) {
@@ -272,7 +263,7 @@ private fun StrengthStatsSection(strengthStats: StrengthStats) {
 private fun EmptyStrengthCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(
@@ -297,9 +288,9 @@ private fun EmptyStrengthCard() {
 private fun StrengthOverviewCard(overview: StrengthStatsOverview) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -343,9 +334,9 @@ private fun StrengthOverviewCard(overview: StrengthStatsOverview) {
 private fun ExerciseProgressCard(progress: StrengthExerciseProgress) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -409,7 +400,7 @@ private fun PerformanceBlock(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(
@@ -441,9 +432,9 @@ private fun PerformanceBlock(
 private fun SessionSummaryCard(session: StrengthSessionSummary) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -514,7 +505,7 @@ private fun SectionHeader(title: String, subtitle: String) {
         Box(
             modifier = Modifier
                 .size(width = 5.dp, height = 40.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(24.dp))
                 .background(MaterialTheme.colorScheme.tertiary)
         )
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -541,7 +532,7 @@ private fun MetricCard(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
         tonalElevation = 3.dp
     ) {
@@ -628,9 +619,9 @@ private fun Sparkline(values: List<Double>) {
 private fun ProgressRingCard(stats: CycleStats) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(24.dp),
@@ -698,7 +689,7 @@ private fun ProgressRingCard(stats: CycleStats) {
 private fun CycleBreakdownCard(stats: CycleStats) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -755,7 +746,7 @@ private fun CategoryStatsCard(categoryStats: Map<String, Int>) {
     )
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {

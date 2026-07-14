@@ -12,13 +12,18 @@ import androidx.core.content.ContextCompat
 import com.mobilitytracker.data.video.VideoResolver
 import com.mobilitytracker.ui.navigation.AppNavGraph
 import com.mobilitytracker.ui.theme.MobilityTrackerTheme
+import com.mobilitytracker.data.repository.WorkoutRepository
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import androidx.compose.runtime.getValue
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     @Inject lateinit var videoResolver: VideoResolver
+    @Inject lateinit var workoutRepository: WorkoutRepository
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -36,7 +41,13 @@ class MainActivity : ComponentActivity() {
         requestVideoPermissionIfNeeded()
         requestNotificationPermissionIfNeeded()
         setContent {
-            MobilityTrackerTheme {
+            val themeMode by workoutRepository.observeThemeMode().collectAsStateWithLifecycle(initialValue = "system")
+            val darkTheme = when (themeMode) {
+                "light" -> false
+                "dark" -> true
+                else -> isSystemInDarkTheme()
+            }
+            MobilityTrackerTheme(darkTheme = darkTheme) {
                 AppNavGraph()
             }
         }

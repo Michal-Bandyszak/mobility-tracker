@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -154,6 +155,7 @@ fun CalendarScreen(viewModel: CalendarViewModel = hiltViewModel()) {
 private fun StrengthHistoryCard(entries: List<StrengthCalendarEntry>) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         )
@@ -183,9 +185,11 @@ private fun StrengthHistoryCard(entries: List<StrengthCalendarEntry>) {
             entries.take(12).forEach { entry ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Row(
                         modifier = Modifier
@@ -246,7 +250,11 @@ private fun CycleGrid(
     todayVideoOrder: Int,
     currentCycle: Int
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+    ) {
         Column(modifier = Modifier.padding(12.dp)) {
             // 3 rzędy: 7 + 7 + 3
             val rows = listOf(workouts.take(7), workouts.drop(7).take(7), workouts.drop(14))
@@ -324,13 +332,14 @@ private fun WorkoutListItem(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = when {
-                isToday -> MaterialTheme.colorScheme.primaryContainer
-                else -> MaterialTheme.colorScheme.surface
+                isToday -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f)
+                else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
             }
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isToday) 4.dp else 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
