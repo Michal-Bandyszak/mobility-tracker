@@ -7,7 +7,6 @@ build/
 /captures
 .externalNativeBuild
 .cxx
-gradle/wrapper/gradle-wrapper.jar
 *.keystore
 *.jks
 keystore.properties
