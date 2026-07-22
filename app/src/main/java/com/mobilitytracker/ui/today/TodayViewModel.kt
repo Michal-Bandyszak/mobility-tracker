@@ -1,5 +1,6 @@
 package com.mobilitytracker.ui.today
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mobilitytracker.data.model.StrengthSetLog
@@ -7,10 +8,13 @@ import com.mobilitytracker.data.repository.StrengthRepository
 import com.mobilitytracker.data.repository.WorkoutRepository
 import com.mobilitytracker.data.video.VideoResolver
 import com.mobilitytracker.domain.model.DayWorkout
+import com.mobilitytracker.domain.model.MobilityChallengeState
 import com.mobilitytracker.domain.model.ScheduledStrengthWorkout
 import com.mobilitytracker.domain.usecase.GetTodayWorkoutUseCase
 import com.mobilitytracker.domain.usecase.ToggleCompletionUseCase
+import com.mobilitytracker.notification.NotificationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,10 +28,10 @@ data class TodayUiState(
     val isLoading: Boolean = true,
     val programNotStarted: Boolean = false,
     val mobilityWorkout: DayWorkout? = null,
+    val nextMobilityWorkout: DayWorkout? = null,
+    val mobilityChallenge: MobilityChallengeState? = null,
     val strengthWorkout: ScheduledStrengthWorkout? = null,
     val strengthLogs: Map<String, StrengthSetLog> = emptyMap(),
-    val completedCycles: Int = 0,
-    val currentStreak: Int = 0,
     val message: String? = null
 )
 
@@ -37,7 +41,8 @@ class TodayViewModel @Inject constructor(
     private val toggleCompletion: ToggleCompletionUseCase,
     private val workoutRepository: WorkoutRepository,
     private val strengthRepository: StrengthRepository,
-    private val videoResolver: VideoResolver
+    private val videoResolver: VideoResolver,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TodayUiState())
@@ -64,6 +69,8 @@ class TodayViewModel @Inject constructor(
                             isLoading = false,
                             programNotStarted = false,
                             mobilityWorkout = result.plan.mobilityWorkout,
+                            nextMobilityWorkout = result.plan.nextMobilityWorkout,
+                            mobilityChallenge = result.plan.mobilityChallenge,
                             strengthWorkout = result.plan.strengthWorkout
                         )
                         observeStrengthLogs(result.plan.strengthWorkout)
@@ -80,6 +87,7 @@ class TodayViewModel @Inject constructor(
         val workout = _state.value.mobilityWorkout ?: return
         viewModelScope.launch {
             toggleCompletion(workout.cycleNumber, workout.videoOrder)
+            if (!workout.isCompleted) NotificationHelper.cancel(context)
             loadToday()
         }
     }
@@ -89,7 +97,8 @@ class TodayViewModel @Inject constructor(
         setNumber: Int,
         weightKg: Double?,
         reps: Int?,
-        timeSeconds: Int?
+        timeSeconds: Int?,
+        bandColor: String?
     ) {
         val strengthWorkout = _state.value.strengthWorkout ?: return
 
@@ -101,7 +110,8 @@ class TodayViewModel @Inject constructor(
                 setNumber = setNumber,
                 weightKg = weightKg,
                 reps = reps,
-                timeSeconds = timeSeconds
+                timeSeconds = timeSeconds,
+                bandColor = bandColor
             )
         }
     }

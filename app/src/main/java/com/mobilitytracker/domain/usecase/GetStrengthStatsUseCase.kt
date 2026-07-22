@@ -182,7 +182,8 @@ class GetStrengthStatsUseCase @Inject constructor(
             planDay = bestLog.planDay,
             weightKg = bestLog.weightKg,
             reps = bestLog.reps,
-            timeSeconds = bestLog.timeSeconds
+            timeSeconds = bestLog.timeSeconds,
+            bandColor = bestLog.bandColor
         )
     }
 
@@ -192,8 +193,17 @@ class GetStrengthStatsUseCase @Inject constructor(
     ): StrengthTrend {
         if (performances.size < 2) return StrengthTrend.UNKNOWN
 
-        val latest = performances[0].scoreFor(trackingType)
-        val previous = performances[1].scoreFor(trackingType)
+        val latestPerformance = performances[0]
+        val previousPerformance = performances[1]
+        if (
+            trackingType == TrackingType.BAND_AND_REPS &&
+            !latestPerformance.bandColor.equals(previousPerformance.bandColor, ignoreCase = true)
+        ) {
+            return StrengthTrend.UNKNOWN
+        }
+
+        val latest = latestPerformance.scoreFor(trackingType)
+        val previous = previousPerformance.scoreFor(trackingType)
         if (latest <= 0.0 || previous <= 0.0) return StrengthTrend.UNKNOWN
 
         return when {
@@ -207,6 +217,7 @@ class GetStrengthStatsUseCase @Inject constructor(
         when (trackingType) {
             TrackingType.WEIGHT_AND_REPS -> compareBy<StrengthSetLog> { it.weightKg ?: 0.0 }
                 .thenBy { it.reps ?: 0 }
+            TrackingType.BAND_AND_REPS -> compareBy { it.reps ?: 0 }
             TrackingType.REPS_ONLY -> compareBy { it.reps ?: 0 }
             TrackingType.TIME_ONLY -> compareBy { it.timeSeconds ?: 0 }
             TrackingType.NONE -> compareBy { it.updatedAt }
@@ -215,6 +226,7 @@ class GetStrengthStatsUseCase @Inject constructor(
     private fun StrengthPerformance.scoreFor(trackingType: TrackingType): Double =
         when (trackingType) {
             TrackingType.WEIGHT_AND_REPS -> ((weightKg ?: 0.0) * 100.0) + ((reps ?: 0) / 100.0)
+            TrackingType.BAND_AND_REPS -> reps?.toDouble() ?: 0.0
             TrackingType.REPS_ONLY -> reps?.toDouble() ?: 0.0
             TrackingType.TIME_ONLY -> timeSeconds?.toDouble() ?: 0.0
             TrackingType.NONE -> 0.0

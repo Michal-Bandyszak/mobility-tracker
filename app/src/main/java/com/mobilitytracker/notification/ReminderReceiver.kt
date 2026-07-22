@@ -5,9 +5,9 @@ import android.content.Context
 import android.content.Intent
 import com.mobilitytracker.data.model.WORKOUT_PLAN
 import com.mobilitytracker.data.model.getStrengthWorkoutByDay
-import com.mobilitytracker.data.model.isTrainingScheduled
 import com.mobilitytracker.data.repository.CompletionRepository
 import com.mobilitytracker.data.repository.WorkoutRepository
+import com.mobilitytracker.domain.model.buildMobilityChallengeState
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -69,7 +69,7 @@ class ReminderReceiver : BroadcastReceiver() {
         val today = LocalDate.now()
         if (today.isBefore(startDate)) return
 
-        val mobilityReminder = buildMobilityReminder(startDate, today)
+        val mobilityReminder = buildMobilityReminder(today)
         val strengthReminder = buildStrengthReminder(today)
 
         if (mobilityReminder != null || strengthReminder != null) {
@@ -98,22 +98,16 @@ class ReminderReceiver : BroadcastReceiver() {
         }
     }
 
-    private suspend fun buildMobilityReminder(
-        startDate: LocalDate,
-        today: LocalDate
-    ): MobilityReminder? {
-        val mobilityDays = workoutRepository.getMobilityDays()
-        if (!isTrainingScheduled(today, mobilityDays)) return null
+    private suspend fun buildMobilityReminder(today: LocalDate): MobilityReminder? {
+        val challenge = buildMobilityChallengeState(completionRepository.getAllCompletionsSync(), today)
+        if (challenge.completedToday) return null
 
-        val sessionNumber = workoutRepository.calculateScheduledSessions(startDate, today, mobilityDays)
-        if (sessionNumber <= 0) return null
-
-        val (cycleNumber, videoOrder) = workoutRepository.sessionNumberToCycleAndVideo(sessionNumber)
-        if (completionRepository.isCompleted(cycleNumber, videoOrder)) return null
+        val cycleNumber = challenge.activeCycleNumber
+        val videoOrder = challenge.activeVideoOrder
 
         val definition = WORKOUT_PLAN.find { it.order == videoOrder } ?: return null
         return MobilityReminder(
-            title = "Mobilność: ${definition.title}",
+            title = "Mobilność ${challenge.completedSessions + 1}/84: ${definition.title}",
             cycleNumber = cycleNumber,
             videoOrder = videoOrder
         )

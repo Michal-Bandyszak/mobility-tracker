@@ -34,6 +34,18 @@ class StrengthWorkoutPlanTest {
     }
 
     @Test
+    fun `vertical pull supports band assisted pull up and weighted pulldown`() {
+        val base = getStrengthWorkoutByDay(1)!!
+            .exercises.single { it.slotId == "day1_vertical_pull" }
+        val pulldown = resolveStrengthWorkout(1, mapOf("day1_vertical_pull" to "day1_lat_pulldown"))!!
+            .exercises.single { it.slotId == "day1_vertical_pull" }
+
+        assertEquals("day1_band_pull_up", base.id)
+        assertEquals(TrackingType.BAND_AND_REPS, base.trackingType)
+        assertEquals(TrackingType.WEIGHT_AND_REPS, pulldown.trackingType)
+    }
+
+    @Test
     fun `every exercise has a YouTube technique link`() {
         assertTrue(
             getStrengthExerciseCatalog().all { entry ->

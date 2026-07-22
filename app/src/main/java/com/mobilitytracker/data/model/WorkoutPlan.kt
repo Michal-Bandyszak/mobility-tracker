@@ -20,7 +20,7 @@ val WORKOUT_PLAN = listOf(
     // Dzień 13-17
     WorkoutDefinition(13, "Przednia taśma zestaw 2",          "przednia_tasma_2.mp4",                 0, "przednia_tasma"),
     WorkoutDefinition(14, "Kręgosłup bez sprzętu zestaw 2",   "kregoslup_bez_sprzetu_2.mp4",          0, "kregoslup"),
-    WorkoutDefinition(15, "Obręcz barkowa sprzęt zestaw 2",   "obrecz_barkowa_z_sprzetem_2.mp4",      0, "barki"),
+    WorkoutDefinition(15, "Obręcz barkowa sprzęt zestaw 2",   "obrecz_barkowa_sprzet_2.mp4",          0, "barki"),
     WorkoutDefinition(16, "Tylna taśma bez sprzętu zestaw 2", "tylna_tasma_bez_sprzetu_2.mp4",        0, "tylna_tasma"),
     WorkoutDefinition(17, "Odcinek szyjny",                   "odcinek_szyjny.mp4",                   0, "kregoslup"),
 )

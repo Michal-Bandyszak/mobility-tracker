@@ -31,9 +31,6 @@ interface CompletionDao {
     @Query("SELECT DISTINCT date FROM completions ORDER BY date DESC")
     suspend fun getCompletedDates(): List<String>
 
-    @Query("SELECT COUNT(DISTINCT cycleNumber) FROM completions WHERE cycleNumber IN (SELECT cycleNumber FROM completions GROUP BY cycleNumber HAVING COUNT(*) = :cycleLength)")
-    fun getCompletedCyclesCount(cycleLength: Int): Flow<Int>
-
     @Query("DELETE FROM completions")
     suspend fun deleteAll()
 }

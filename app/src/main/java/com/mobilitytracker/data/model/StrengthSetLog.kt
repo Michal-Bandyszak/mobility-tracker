@@ -24,5 +24,6 @@ data class StrengthSetLog(
     val weightKg: Double?,
     val reps: Int?,
     val timeSeconds: Int?,
+    val bandColor: String? = null,
     val updatedAt: Long
 )

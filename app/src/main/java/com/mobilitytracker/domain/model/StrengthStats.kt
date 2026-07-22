@@ -83,7 +83,8 @@ data class StrengthPerformance(
     val planDay: Int,
     val weightKg: Double?,
     val reps: Int?,
-    val timeSeconds: Int?
+    val timeSeconds: Int?,
+    val bandColor: String?
 )
 
 enum class StrengthTrend {

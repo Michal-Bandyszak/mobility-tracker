@@ -62,9 +62,10 @@ import com.mobilitytracker.data.model.StrengthExerciseDefinition
 import com.mobilitytracker.data.model.StrengthSetLog
 import com.mobilitytracker.data.model.WARMUP_ROUTINE
 import com.mobilitytracker.domain.model.DayWorkout
+import com.mobilitytracker.domain.model.MOBILITY_CHALLENGE_SESSIONS
+import com.mobilitytracker.domain.model.MobilityChallengeState
 import com.mobilitytracker.domain.model.ScheduledStrengthWorkout
 import com.mobilitytracker.ui.components.ExpressiveHeader
-import com.mobilitytracker.ui.components.ExpressivePanel
 import com.mobilitytracker.ui.components.ExpressiveScreen
 import com.mobilitytracker.ui.components.StatusPill
 import com.mobilitytracker.ui.theme.StreakOrange
@@ -80,7 +81,7 @@ fun TodayScreen(viewModel: TodayViewModel = hiltViewModel()) {
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.loadToday()
+                viewModel.loadToday(showLoading = false)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -98,8 +99,8 @@ fun TodayScreen(viewModel: TodayViewModel = hiltViewModel()) {
             TodayContent(
                 state = state,
                 onToggle = { viewModel.toggleCompletion() },
-                onSaveStrengthSet = { exerciseId, setNumber, weight, reps, time ->
-                    viewModel.saveStrengthSet(exerciseId, setNumber, weight, reps, time)
+                onSaveStrengthSet = { exerciseId, setNumber, weight, reps, time, bandColor ->
+                    viewModel.saveStrengthSet(exerciseId, setNumber, weight, reps, time, bandColor)
                 },
                 onChooseStrengthWorkoutToday = { planDay ->
                     viewModel.chooseStrengthWorkoutToday(planDay)
@@ -121,7 +122,7 @@ fun TodayScreen(viewModel: TodayViewModel = hiltViewModel()) {
 private fun TodayContent(
     state: TodayUiState,
     onToggle: () -> Unit,
-    onSaveStrengthSet: (String, Int, Double?, Int?, Int?) -> Unit,
+    onSaveStrengthSet: (String, Int, Double?, Int?, Int?, String?) -> Unit,
     onChooseStrengthWorkoutToday: (Int) -> Unit,
     onChangeStrengthExerciseToday: (String, String) -> Unit,
     onRestoreStrengthExerciseToday: (String) -> Unit,
@@ -130,13 +131,16 @@ private fun TodayContent(
 ) {
     val mobilityWorkout = state.mobilityWorkout
     val strengthWorkout = state.strengthWorkout
+    val challenge = state.mobilityChallenge
     val title = when {
+        challenge?.completedToday == true -> "Mobilność zrobiona"
         mobilityWorkout != null && strengthWorkout != null -> "Dzisiaj pełny zestaw"
         mobilityWorkout != null -> "Dzisiaj mobilność"
         strengthWorkout != null -> "Dzisiaj siła"
         else -> "Dzisiaj regeneracja"
     }
     val subtitle = when {
+        challenge?.completedToday == true -> "Dzisiejsza sesja jest zaliczona. Jutro wrócisz do kolejnego filmu."
         mobilityWorkout != null && strengthWorkout != null -> "Najpierw rozruszaj ciało, potem przejdź do planu siłowego."
         mobilityWorkout != null -> "Jeden konkretny blok ruchu wystarczy, żeby utrzymać rytm."
         strengthWorkout != null -> "Masz aktywny trening siłowy i możesz zmienić A/B jednym tapnięciem."
@@ -166,16 +170,23 @@ private fun TodayContent(
                 subtitle = subtitle
             )
 
+            if (challenge != null) {
+                MobilityChallengeCard(challenge)
+            }
+
             if (mobilityWorkout != null) {
                 MobilityWorkoutCard(
                     workout = mobilityWorkout,
                     onToggle = onToggle,
                     onRefresh = onRefresh
                 )
+                if (challenge?.completedToday == true && state.nextMobilityWorkout != null) {
+                    NextMobilityCard(state.nextMobilityWorkout)
+                }
             } else {
                 NoTrainingCard(
                     title = "Mobilność",
-                    description = "Dziś nie ma zaplanowanej mobilności według ustawionego harmonogramu."
+                    description = "Nie udało się wczytać bieżącej sesji mobilności. Odśwież ekran."
                 )
             }
 
@@ -216,57 +227,84 @@ private fun TodayContent(
 }
 
 @Composable
-private fun TodayPlanPanel(
-    mobilityWorkout: DayWorkout?,
-    strengthWorkout: ScheduledStrengthWorkout?,
-    completedCycles: Int,
-    currentStreak: Int
-) {
-    ExpressivePanel(modifier = Modifier.fillMaxWidth()) {
+private fun MobilityChallengeCard(challenge: MobilityChallengeState) {
+    val title = when {
+        challenge.isComplete -> "12 tygodni ukończone"
+        challenge.completedToday -> "Zrobione na dziś • ${challenge.completedSessions}/$MOBILITY_CHALLENGE_SESSIONS"
+        else -> "Sesja ${challenge.activeSessionNumber.coerceAtMost(MOBILITY_CHALLENGE_SESSIONS)} z $MOBILITY_CHALLENGE_SESSIONS"
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            Text(
+                text = "WYZWANIE MOBILNOŚCI",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                fontWeight = FontWeight.Bold
+            )
+            LinearProgressIndicator(
+                progress = { challenge.progress.coerceIn(0f, 1f) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp)
+            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 StatusPill(
-                    label = "Mobilność",
-                    value = mobilityWorkout?.let { "C${it.cycleNumber}.${it.videoOrder}" } ?: "wolne",
-                    modifier = Modifier.weight(1f)
+                    label = "Seria",
+                    value = "${challenge.currentStreak} dni",
+                    modifier = Modifier.weight(1f),
+                    color = StreakOrange
                 )
                 StatusPill(
-                    label = "Siła",
-                    value = strengthWorkout?.let { "T${it.planDay}" } ?: "wybierz",
+                    label = "Ten tydzień",
+                    value = "${challenge.completedThisWeek}/7",
                     modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.secondary
+                    color = MaterialTheme.colorScheme.tertiary
                 )
             }
+        }
+    }
+}
 
-            if (completedCycles > 0 || currentStreak > 1) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (completedCycles > 0) {
-                        StatusPill(
-                            label = "Cykle",
-                            value = completedCycles.toString(),
-                            modifier = Modifier.weight(1f),
-                            color = MaterialTheme.colorScheme.tertiary
-                        )
-                    }
-                    if (currentStreak > 1) {
-                        StatusPill(
-                            label = "Seria",
-                            value = "$currentStreak dni",
-                            modifier = Modifier.weight(1f),
-                            color = StreakOrange
-                        )
-                    }
-                }
-            }
+@Composable
+private fun NextMobilityCard(workout: DayWorkout) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = "JUTRO • FILM ${workout.videoOrder}/$CYCLE_LENGTH",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = workout.definition.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
@@ -379,7 +417,7 @@ private fun MobilityWorkoutCard(workout: DayWorkout, onToggle: () -> Unit, onRef
                         onCheckedChange = { onToggle() }
                     )
                     Text(
-                        text = if (workout.isCompleted) "Trening zrobiony!" else "Oznacz jako zrobione",
+                        text = if (workout.isCompleted) "Zrobione na dziś — dotknij, aby cofnąć" else "Oznacz jako zrobione",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = if (workout.isCompleted) FontWeight.Bold else FontWeight.Normal,
                         color = if (workout.isCompleted) MaterialTheme.colorScheme.primary
@@ -398,7 +436,7 @@ private fun MobilityWorkoutCard(workout: DayWorkout, onToggle: () -> Unit, onRef
 private fun StrengthWorkoutCard(
     workout: ScheduledStrengthWorkout,
     logs: Map<String, StrengthSetLog>,
-    onSaveSet: (String, Int, Double?, Int?, Int?) -> Unit,
+    onSaveSet: (String, Int, Double?, Int?, Int?, String?) -> Unit,
     onChooseStrengthWorkoutToday: (Int) -> Unit,
     onChangeExercise: (String, String) -> Unit,
     onRestoreExercise: (String) -> Unit
@@ -593,7 +631,7 @@ private fun StrengthPlanButton(
 private fun StrengthExerciseCard(
     exercise: StrengthExerciseDefinition,
     logs: Map<String, StrengthSetLog>,
-    onSaveSet: (String, Int, Double?, Int?, Int?) -> Unit,
+    onSaveSet: (String, Int, Double?, Int?, Int?, String?) -> Unit,
     onChange: () -> Unit,
     onRestore: () -> Unit
 ) {
@@ -678,7 +716,7 @@ private fun StrengthSetLogRow(
     exercise: StrengthExerciseDefinition,
     setNumber: Int,
     log: StrengthSetLog?,
-    onSaveSet: (String, Int, Double?, Int?, Int?) -> Unit
+    onSaveSet: (String, Int, Double?, Int?, Int?, String?) -> Unit
 ) {
     val exerciseId = exercise.id
     val trackingType = exercise.trackingType
@@ -691,6 +729,9 @@ private fun StrengthSetLogRow(
     }
     var timeText by remember(log?.timeSeconds, exerciseId, setNumber) {
         mutableStateOf(log?.timeSeconds?.toString() ?: "")
+    }
+    var bandText by remember(log?.bandColor, exerciseId, setNumber) {
+        mutableStateOf(log?.bandColor ?: "")
     }
     
     val isCompleted = log != null
@@ -714,6 +755,23 @@ private fun StrengthSetLogRow(
                         label = { Text("kg", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = repsText,
+                        onValueChange = { repsText = it },
+                        label = { Text("powt.", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                TrackingType.BAND_AND_REPS -> {
+                    OutlinedTextField(
+                        value = bandText,
+                        onValueChange = { bandText = it },
+                        label = { Text("kolor gumy", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
+                        singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
@@ -756,9 +814,9 @@ private fun StrengthSetLogRow(
                     checked = isCompleted,
                     onCheckedChange = { checked ->
                         if (checked) {
-                            onSaveSet(exerciseId, setNumber, 0.0, 0, 0)
+                            onSaveSet(exerciseId, setNumber, 0.0, 0, 0, null)
                         } else {
-                            onSaveSet(exerciseId, setNumber, null, null, null)
+                            onSaveSet(exerciseId, setNumber, null, null, null, null)
                         }
                     }
                 )
@@ -773,12 +831,9 @@ private fun StrengthSetLogRow(
                         val weight = weightText.replace(',', '.').trim().toDoubleOrNull()
                         val reps = repsText.trim().toIntOrNull()
                         val time = timeText.trim().toIntOrNull()
-                        // Ensure we always save *something* (like 0) if nothing was parsed, or just save nulls. 
-                        // But if we pass all nulls, it will DELETE the log.
-                        // So if user leaves fields empty but clicks "Zapisz", maybe we want to save them as 0 if they want to explicitly save an empty set.
-                        // For now, let's just pass parsed values.
-                        if (weight != null || reps != null || time != null) {
-                            onSaveSet(exerciseId, setNumber, weight, reps, time)
+                        val bandColor = bandText.trim().takeIf { it.isNotEmpty() }
+                        if (weight != null || reps != null || time != null || bandColor != null) {
+                            onSaveSet(exerciseId, setNumber, weight, reps, time, bandColor)
                         }
                     }
                 ) {
@@ -846,7 +901,7 @@ private fun OnboardingContent(onStart: (LocalDate) -> Unit) {
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "17-dniowy program mobilności i plan siłowy 2x w tygodniu. Dni treningowe ustawisz w Ustawieniach.",
+            text = "84 sesje mobilności wykonywane po kolei, maksymalnie jedna dziennie, oraz plan siłowy 2x w tygodniu.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

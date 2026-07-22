@@ -142,13 +142,6 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         }
 
         TrainingDaysCard(
-            title = "Dni mobilności",
-            description = "W te dni aplikacja pokaże kolejny film z 17-dniowego cyklu.",
-            selectedDays = state.mobilityDays,
-            onToggle = { viewModel.toggleMobilityDay(it) }
-        )
-
-        TrainingDaysCard(
             title = "Dni siłowni",
             description = "Klikaj dzień, żeby przełączać: brak, A, B. Aplikacja pokaże wybrany trening w danym dniu.",
             selectedDays = state.strengthDays,
@@ -265,12 +258,12 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Reset mobilności",
+                    text = "12-tygodniowe wyzwanie",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = "Resetuje tylko postęp i ukończenia mobilności. Serie siłowe, historia, plan A/B oraz podmiany ćwiczeń zostają.",
+                    text = "Rozpoczyna 84 sesje mobilności od nowa. Historia i plan siłowy zostają bez zmian.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -278,7 +271,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     onClick = { showResetDialog = true },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Resetuj mobilność")
+                    Text("Rozpocznij wyzwanie od nowa")
                 }
             }
         }
@@ -342,16 +335,16 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     if (showResetDialog) {
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
-            title = { Text("Resetować mobilność?") },
+            title = { Text("Rozpocząć wyzwanie od nowa?") },
             text = {
-                Text("Mobilność zacznie się od pierwszej najbliższej sesji. Serie siłowe, historia oraz plan A/B zostaną zachowane.")
+                Text("Postęp mobilności zostanie wyzerowany i dziś pojawi się pierwsza z 84 sesji. Dane siłowe zostaną zachowane.")
             },
             confirmButton = {
                 Button(onClick = {
                     viewModel.resetFlow()
                     showResetDialog = false
                 }) {
-                    Text("Resetuj mobilność")
+                    Text("Rozpocznij od nowa")
                 }
             },
             dismissButton = {

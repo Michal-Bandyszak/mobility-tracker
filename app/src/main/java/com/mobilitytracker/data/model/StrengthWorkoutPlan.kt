@@ -4,6 +4,7 @@ import java.net.URLEncoder
 
 enum class TrackingType {
     WEIGHT_AND_REPS,
+    BAND_AND_REPS,
     REPS_ONLY,
     TIME_ONLY,
     NONE
@@ -121,7 +122,8 @@ val EXERCISE_CATALOG = listOf(
     exercise("day1_glute_bridge", "Most biodrowy obunóż", "Główne", TrackingType.WEIGHT_AND_REPS, "Pauza w górze, żebra schowane."),
     exercise("day1_dumbbell_bench_press", "Wyciskanie hantli na ławce poziomej", "Główne", TrackingType.WEIGHT_AND_REPS, "Łokcie około 45 stopni względem tułowia."),
     exercise("day1_dumbbell_floor_press", "Wyciskanie hantli na podłodze", "Główne", TrackingType.WEIGHT_AND_REPS, "Zatrzymaj łokcie miękko na podłodze."),
-    exercise("day1_lat_pulldown", "Podciąganie nachwytem / ściąganie drążka wyciągu górnego", "Główne", TrackingType.WEIGHT_AND_REPS, "Pełen zakres ruchu, kontroluj łopatki."),
+    exercise("day1_band_pull_up", "Podciąganie nachwytem z gumą", "Główne", TrackingType.BAND_AND_REPS, "Wpisz kolor użytej gumy. Pełen zakres ruchu, kontroluj łopatki."),
+    exercise("day1_lat_pulldown", "Ściąganie drążka wyciągu górnego", "Główne", TrackingType.WEIGHT_AND_REPS, "Pełen zakres ruchu, kontroluj łopatki."),
     exercise("day1_one_arm_row", "Wiosłowanie hantlem jednorącz", "Główne", TrackingType.WEIGHT_AND_REPS, "Stabilny tułów, prowadź łokieć do biodra."),
     exercise("day1_lateral_raise", "Wznosy ramion bokiem", "Dodatkowe", TrackingType.WEIGHT_AND_REPS, "Lekkie ciężary, bez bujania tułowiem."),
     exercise("day1_rear_delt_raise", "Odwrotne rozpiętki z hantlami", "Dodatkowe", TrackingType.WEIGHT_AND_REPS, "Prowadź ruch łopatkami, bez szarpania."),
@@ -169,7 +171,7 @@ private val STRENGTH_WORKOUT_TEMPLATES = listOf(
             slot("day1_squat", "day1_goblet_squat_pause", listOf("day1_box_squat"), "Główne", 3, "10", "31x1", "RIR2", 90),
             slot("day1_hip_extension", "single_leg_hip_thrust", listOf("day1_glute_bridge"), "Główne", 3, "10/str", "3010", "RIR2", 90),
             slot("day1_horizontal_push", "day1_dumbbell_bench_press", listOf("day1_dumbbell_floor_press"), "Główne", 3, "8-10", "3010", "RIR2", 120),
-            slot("day1_vertical_pull", "day1_lat_pulldown", listOf("day1_one_arm_row"), "Główne", 3, "8-10", "3010", "RIR2", 120),
+            slot("day1_vertical_pull", "day1_band_pull_up", listOf("day1_lat_pulldown", "day1_one_arm_row"), "Główne", 3, "8-10", "3010", "RIR2", 120),
             slot("day1_lateral_delts", "day1_lateral_raise", listOf("day1_rear_delt_raise"), "Dodatkowe", 3, "12-15", "2011", "RIR1", 60),
             slot("day1_biceps", "day1_supinated_curl", listOf("day1_hammer_curl"), "Dodatkowe", 2, "10-12", "3010", "RIR1", 60),
             slot("day1_core", "day1_deadbug", listOf("day1_bird_dog"), "Dodatkowe", 3, "10-15", restSeconds = 60)
@@ -210,7 +212,7 @@ fun resolveStrengthWorkout(
         val selected = requested
             ?.takeIf { it in slot.availableExerciseIds }
             ?.let(EXERCISE_CATALOG::get)
-            ?.takeIf { it.selectable && it.trackingType == default.trackingType && it.id !in selectedIds }
+            ?.takeIf { it.selectable && it.id !in selectedIds }
             ?: default
         selectedIds += selected.id
         StrengthExerciseDefinition(

@@ -4,11 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mobilitytracker.data.model.StrengthSetLog
 import com.mobilitytracker.data.model.TrackingType
+import com.mobilitytracker.data.repository.CompletionRepository
 import com.mobilitytracker.data.repository.StrengthRepository
 import com.mobilitytracker.data.repository.WorkoutRepository
 import com.mobilitytracker.domain.model.DayWorkout
+import com.mobilitytracker.domain.model.buildMobilityChallengeState
 import com.mobilitytracker.domain.usecase.GetCycleWorkoutsUseCase
-import com.mobilitytracker.domain.usecase.ToggleCompletionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,8 +41,8 @@ data class StrengthCalendarEntry(
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
     private val getCycleWorkouts: GetCycleWorkoutsUseCase,
-    private val toggleCompletion: ToggleCompletionUseCase,
     private val workoutRepository: WorkoutRepository,
+    private val completionRepository: CompletionRepository,
     private val strengthRepository: StrengthRepository
 ) : ViewModel() {
 
@@ -54,11 +55,14 @@ class CalendarViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             if (workoutRepository.getProgramStartDate() != null) {
-                val (todayCycle, todayVideo) = workoutRepository.getCurrentMobilityPosition(LocalDate.now())
-                    ?: Pair(1, 1)
+                val completions = completionRepository.getAllCompletionsSync()
+                val challenge = buildMobilityChallengeState(completions)
+                val todayCycle = challenge.todayCycleNumber
+                val todayVideo = challenge.todayVideoOrder
+                val maxCycle = maxOf(challenge.activeCycleNumber, completions.maxOfOrNull { it.cycleNumber } ?: 1)
                 _state.value = _state.value.copy(
                     currentCycle = todayCycle,
-                    maxCycle = todayCycle,
+                    maxCycle = maxCycle,
                     todayCycle = todayCycle,
                     todayVideoOrder = todayVideo
                 )
@@ -91,12 +95,6 @@ class CalendarViewModel @Inject constructor(
     fun nextCycle() {
         val current = _state.value.currentCycle
         if (current < _state.value.maxCycle) loadCycle(current + 1)
-    }
-
-    fun toggleCompletion(cycleNumber: Int, videoOrder: Int) {
-        viewModelScope.launch {
-            toggleCompletion.invoke(cycleNumber, videoOrder)
-        }
     }
 
     private fun observeStrengthHistory() {

@@ -7,7 +7,7 @@ import com.mobilitytracker.data.video.VideoResolver
 import com.mobilitytracker.domain.model.DayWorkout
 import com.mobilitytracker.domain.model.ScheduledStrengthWorkout
 import com.mobilitytracker.domain.model.TodayTrainingPlan
-import com.mobilitytracker.data.model.isTrainingScheduled
+import com.mobilitytracker.domain.model.buildMobilityChallengeState
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -30,32 +30,43 @@ class GetTodayWorkoutUseCase @Inject constructor(
 
         if (today.isBefore(startDate)) return Result.ProgramNotStarted
 
-        val mobilityWorkout = buildMobilityWorkout(startDate, today)
+        val challenge = buildMobilityChallengeState(completionRepository.getAllCompletionsSync(), today)
+        val mobilityWorkout = buildMobilityWorkout(
+            cycleNumber = challenge.todayCycleNumber,
+            videoOrder = challenge.todayVideoOrder,
+            isCompleted = challenge.completedToday
+        )
+        val nextMobilityWorkout = if (challenge.completedToday) {
+            buildMobilityWorkout(
+                cycleNumber = challenge.activeCycleNumber,
+                videoOrder = challenge.activeVideoOrder,
+                isCompleted = false
+            )
+        } else null
         val strengthWorkout = buildStrengthWorkout(today)
 
         return Result.Success(
             TodayTrainingPlan(
                 mobilityWorkout = mobilityWorkout,
+                nextMobilityWorkout = nextMobilityWorkout,
+                mobilityChallenge = challenge,
                 strengthWorkout = strengthWorkout
             )
         )
     }
 
-    private suspend fun buildMobilityWorkout(startDate: LocalDate, today: LocalDate): DayWorkout? {
-        val mobilityDays = workoutRepository.getMobilityDays()
-        if (!isTrainingScheduled(today, mobilityDays)) return null
-
-        val sessionNumber = workoutRepository.getTotalMobilitySessions(today)
-        if (sessionNumber <= 0) return null
-
-        val (cycleNumber, videoOrder) = workoutRepository.sessionNumberToCycleAndVideo(sessionNumber)
+    private fun buildMobilityWorkout(
+        cycleNumber: Int,
+        videoOrder: Int,
+        isCompleted: Boolean
+    ): DayWorkout? {
         val definition = workoutRepository.getWorkoutByOrder(videoOrder) ?: return null
 
         return DayWorkout(
             cycleNumber = cycleNumber,
             videoOrder = videoOrder,
             definition = definition,
-            isCompleted = completionRepository.isCompleted(cycleNumber, videoOrder),
+            isCompleted = isCompleted,
             videoUri = videoResolver.findVideoUri(definition.videoFileName)?.toString()
         )
     }

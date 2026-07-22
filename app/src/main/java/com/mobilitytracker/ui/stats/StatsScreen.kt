@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -47,6 +48,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mobilitytracker.data.model.CYCLE_LENGTH
 import com.mobilitytracker.data.model.TrackingType
 import com.mobilitytracker.domain.model.CycleStats
+import com.mobilitytracker.domain.model.MOBILITY_CHALLENGE_SESSIONS
+import com.mobilitytracker.domain.model.MobilityChallengeState
 import com.mobilitytracker.domain.model.StrengthExerciseProgress
 import com.mobilitytracker.domain.model.StrengthPerformance
 import com.mobilitytracker.domain.model.StrengthProgressHighlight
@@ -79,15 +82,33 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
                 subtitle = "Najważniejsze sygnały: ostatnia sesja, rytm i ćwiczenia, które realnie idą do przodu."
             )
 
-            StatsHeroCard(strengthStats = strengthStats)
-
             if (stats == null) {
                 EmptyStatsCard()
+                StatsHeroCard(strengthStats = strengthStats)
                 StrengthStatsSection(strengthStats = strengthStats)
                 return@Column
             }
 
             val mobilityStats = stats!!
+            ChallengeJourneyCard(mobilityStats.challenge)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                MetricCard(
+                    label = "Aktualna seria",
+                    value = "${mobilityStats.currentStreak} dni",
+                    valueColor = StreakOrange,
+                    modifier = Modifier.weight(1f)
+                )
+                MetricCard(
+                    label = "Ten tydzień",
+                    value = "${mobilityStats.challenge.completedThisWeek}/7",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
             ProgressRingCard(stats = mobilityStats)
 
             Row(
@@ -106,22 +127,80 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
                 )
             }
 
-            if (mobilityStats.currentStreak > 1) {
-                MetricCard(
-                    label = "Aktualna seria",
-                    value = "${mobilityStats.currentStreak} dni",
-                    valueColor = StreakOrange
-                )
-            }
-
+            StatsHeroCard(strengthStats = strengthStats)
             StrengthStatsSection(strengthStats = strengthStats)
 
             if (mobilityStats.cycleBreakdown.isNotEmpty()) {
                 CycleBreakdownCard(stats = mobilityStats)
             }
 
-            if (mobilityStats.categoryStats.isNotEmpty()) {
-                CategoryStatsCard(categoryStats = mobilityStats.categoryStats)
+        }
+    }
+}
+
+@Composable
+private fun ChallengeJourneyCard(challenge: MobilityChallengeState) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = if (challenge.isComplete) "WYZWANIE UKOŃCZONE" else "12 TYGODNI MOBILNOŚCI",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "${challenge.completedSessions}/$MOBILITY_CHALLENGE_SESSIONS sesji • film czeka, dopóki go nie wykonasz",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            repeat(12) { weekIndex ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "T${weekIndex + 1}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.width(26.dp)
+                    )
+                    repeat(7) { dayIndex ->
+                        val session = weekIndex * 7 + dayIndex + 1
+                        val completed = session in challenge.completedSessionNumbers
+                        val active = !challenge.isComplete && session == challenge.activeSessionNumber
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(22.dp)
+                                .clip(RoundedCornerShape(7.dp))
+                                .background(
+                                    when {
+                                        completed -> CompletedGreen
+                                        active -> MaterialTheme.colorScheme.primaryContainer
+                                        else -> MaterialTheme.colorScheme.surfaceVariant
+                                    }
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (completed) {
+                                Text(
+                                    text = "✓",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -734,57 +813,17 @@ private fun CycleBreakdownCard(stats: CycleStats) {
     }
 }
 
-@Composable
-private fun CategoryStatsCard(categoryStats: Map<String, Int>) {
-    val categoryNames = mapOf(
-        "biodra" to "Biodra",
-        "kregoslup" to "Kręgosłup",
-        "barki" to "Barki",
-        "tylna_tasma" to "Tylna taśma",
-        "przednia_tasma" to "Przednia taśma",
-        "inne" to "Inne"
-    )
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "KATEGORIE MOBILNOŚCI",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-            categoryStats.entries.sortedByDescending { it.value }.forEach { (key, count) ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 2.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = categoryNames[key] ?: key,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = "$count razy",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-        }
-    }
-}
-
 private fun StrengthPerformance.formatFor(trackingType: TrackingType): String =
     when (trackingType) {
         TrackingType.WEIGHT_AND_REPS -> {
             val weight = weightKg?.let { "${formatNumber(it)} kg" }
             val repetitions = reps?.let { "$it powt." }
             listOfNotNull(weight, repetitions).joinToString(" x ").ifBlank { "brak" }
+        }
+        TrackingType.BAND_AND_REPS -> {
+            val band = bandColor?.let { "guma $it" }
+            val repetitions = reps?.let { "$it powt." }
+            listOfNotNull(band, repetitions).joinToString(" • ").ifBlank { "brak" }
         }
         TrackingType.REPS_ONLY -> reps?.let { "$it powt." } ?: "brak"
         TrackingType.TIME_ONLY -> timeSeconds?.let { "${it}s" } ?: "brak"
@@ -823,6 +862,7 @@ private fun StrengthStatsOverview.latestSessionLabel(): String {
 private fun StrengthPerformance.scoreFor(trackingType: TrackingType): Double =
     when (trackingType) {
         TrackingType.WEIGHT_AND_REPS -> weightKg ?: 0.0
+        TrackingType.BAND_AND_REPS -> reps?.toDouble() ?: 0.0
         TrackingType.REPS_ONLY -> reps?.toDouble() ?: 0.0
         TrackingType.TIME_ONLY -> timeSeconds?.toDouble() ?: 0.0
         TrackingType.NONE -> 0.0
@@ -831,6 +871,7 @@ private fun StrengthPerformance.scoreFor(trackingType: TrackingType): Double =
 private fun trackingLabel(type: TrackingType): String =
     when (type) {
         TrackingType.WEIGHT_AND_REPS -> "ciężar + powtórzenia"
+        TrackingType.BAND_AND_REPS -> "guma + powtórzenia"
         TrackingType.REPS_ONLY -> "powtórzenia"
         TrackingType.TIME_ONLY -> "czas"
         TrackingType.NONE -> "bez progresu"

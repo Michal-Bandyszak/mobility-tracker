@@ -29,7 +29,6 @@ data class SettingsUiState(
     val reminderMinute: Int = 0,
     val canScheduleExactAlarms: Boolean = true,
     val hasNotificationPermission: Boolean = true,
-    val mobilityDays: Set<DayOfWeek> = emptySet(),
     val strengthDays: Set<DayOfWeek> = emptySet(),
     val strengthDayPlanAssignments: Map<DayOfWeek, Int> = emptyMap(),
     val themeMode: String = "system"
@@ -50,7 +49,6 @@ class SettingsViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val (enabled, hour, minute) = workoutRepository.getReminderSettings()
-            val mobilityDays = workoutRepository.getMobilityDays()
             val strengthDayPlanAssignments = workoutRepository.getStrengthDayPlanAssignments()
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             val canSchedule = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -67,7 +65,6 @@ class SettingsViewModel @Inject constructor(
                 reminderMinute = minute,
                 canScheduleExactAlarms = canSchedule,
                 hasNotificationPermission = hasNotifPermission,
-                mobilityDays = mobilityDays,
                 strengthDays = strengthDayPlanAssignments.keys,
                 strengthDayPlanAssignments = strengthDayPlanAssignments,
                 themeMode = workoutRepository.getThemeMode()
@@ -120,15 +117,6 @@ class SettingsViewModel @Inject constructor(
             if (state.reminderEnabled) {
                 alarmScheduler.scheduleDaily(hour, minute)
             }
-        }
-    }
-
-    fun toggleMobilityDay(day: DayOfWeek) {
-        viewModelScope.launch {
-            val current = _state.value.mobilityDays
-            val updated = if (day in current) current - day else current + day
-            workoutRepository.saveMobilityDays(updated)
-            _state.value = _state.value.copy(mobilityDays = updated)
         }
     }
 

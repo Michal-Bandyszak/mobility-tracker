@@ -68,9 +68,10 @@ class StrengthRepository @Inject constructor(
         setNumber: Int,
         weightKg: Double?,
         reps: Int?,
-        timeSeconds: Int?
+        timeSeconds: Int?,
+        bandColor: String?
     ) {
-        if (weightKg == null && reps == null && timeSeconds == null) {
+        if (weightKg == null && reps == null && timeSeconds == null && bandColor == null) {
             strengthLogDao.deleteSetLog(
                 date = date.toString(),
                 planDay = planDay,
@@ -89,6 +90,7 @@ class StrengthRepository @Inject constructor(
                 weightKg = weightKg,
                 reps = reps,
                 timeSeconds = timeSeconds,
+                bandColor = bandColor,
                 updatedAt = System.currentTimeMillis()
             )
         )

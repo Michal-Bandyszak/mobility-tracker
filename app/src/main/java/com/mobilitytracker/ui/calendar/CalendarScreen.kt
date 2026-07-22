@@ -2,7 +2,6 @@ package com.mobilitytracker.ui.calendar
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,7 +22,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -82,7 +80,7 @@ fun CalendarScreen(viewModel: CalendarViewModel = hiltViewModel()) {
                 ExpressiveHeader(
                     eyebrow = "Kalendarz",
                     title = "Historia ruchu",
-                    subtitle = "Cykle mobilności i faktyczne dni treningów siłowych w jednym miejscu."
+                    subtitle = "Cykle mobilności w trybie tylko do odczytu i faktyczne dni treningów siłowych."
                 )
             }
 
@@ -143,7 +141,6 @@ fun CalendarScreen(viewModel: CalendarViewModel = hiltViewModel()) {
                 WorkoutListItem(
                     workout = workout,
                     isToday = state.currentCycle == state.todayCycle && workout.videoOrder == state.todayVideoOrder,
-                    onToggle = { viewModel.toggleCompletion(workout.cycleNumber, workout.videoOrder) },
                     onPlay = workout.videoUri
                 )
             }
@@ -325,7 +322,6 @@ private fun DayCell(number: Int, isCompleted: Boolean, isToday: Boolean) {
 private fun WorkoutListItem(
     workout: DayWorkout,
     isToday: Boolean,
-    onToggle: () -> Unit,
     onPlay: String?
 ) {
     val context = LocalContext.current
@@ -381,9 +377,10 @@ private fun WorkoutListItem(
                     )
                 }
             }
-            Checkbox(
-                checked = workout.isCompleted,
-                onCheckedChange = { onToggle() }
+            Text(
+                text = if (workout.isCompleted) "✓" else "○",
+                style = MaterialTheme.typography.titleLarge,
+                color = if (workout.isCompleted) CompletedGreen else MaterialTheme.colorScheme.outline
             )
         }
     }

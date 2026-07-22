@@ -4,13 +4,13 @@ Android app for tracking a scheduled mobility program and a 2-day strength train
 
 ## Features
 
-- **Scheduled mobility tracking** — configurable weekdays for a repeating 17-video mobility cycle
+- **12-week mobility challenge** — 84 sequential sessions, at most one per day
 - **Strength training plan** — 2-day gym plan with exercise prescriptions, technique links, and set logging
 - **Set logs** — save weight and completed reps per exercise and set
-- **Training schedule** — choose mobility weekdays and assign each gym weekday to Strength Day 1 or Day 2
-- **Flow reset** — reset program start, mobility completions, and strength logs while keeping preferences
+- **Training schedule** — mobility is available daily; assign each gym weekday to Strength Day 1 or Day 2
+- **Mobility reset** — restart only the 84-session challenge while keeping strength history and preferences
 - **Calendar view** — navigate between cycles, see completion history at a glance
-- **Statistics** — animated progress ring, streaks, per-cycle breakdown, category distribution
+- **Statistics** — 12×7 challenge map, daily streaks, weekly goal, and per-cycle breakdown
 - **Training reminders** — configurable push notifications that survive reboots and app updates
 - **Quick action** — mark workout as done directly from the notification, without opening the app
 - **Dark mode** — automatic system-based theming with Material 3
@@ -83,17 +83,13 @@ cd mobilne-cialo
 
 ### First Launch
 
-On first launch the app asks for a program start date. Choose today to start from day 1, or pick a past date if you've already been training. Weekday schedules can be changed in Settings.
+On first launch the app asks for a program start date. Mobility is available every day and advances only after the current video is completed.
 
 ## How the 17-Day Cycle Works
 
-```
-totalDays    = days since startDate
-currentCycle = (totalDays / 17) + 1
-currentVideo = (totalDays % 17) + 1
-```
+The app finds the first unfinished session in the repeating 17-video sequence. Missing a day does not skip a video, and completing a session locks mobility until the next calendar day. The 12-week challenge is complete after 84 sessions; the sequence can continue afterwards.
 
-The mobility cycle repeats indefinitely and advances only on selected mobility weekdays. Strength training is selected per weekday, so Monday can be Day 1, Thursday can be Day 2, or any other mapping can be configured.
+Strength training is selected per weekday, so Monday can be Day 1, Thursday can be Day 2, or any other mapping can be configured.
 
 ## Permissions
 
