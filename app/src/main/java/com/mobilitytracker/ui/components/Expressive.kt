@@ -90,7 +90,7 @@ fun StatusPill(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(percent = 50), // Fully rounded pill
-        color = color.copy(alpha = 0.1f) // Even softer background
+        color = color.copy(alpha = 0.18f)
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -99,7 +99,7 @@ fun StatusPill(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = color.copy(alpha = 0.8f) // Colored label for cohesion
+                color = color
             )
             Text(
                 text = value,
