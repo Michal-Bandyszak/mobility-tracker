@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,7 +36,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -60,7 +60,6 @@ import com.mobilitytracker.domain.model.StrengthTrend
 import com.mobilitytracker.ui.components.ExpressiveHeader
 import com.mobilitytracker.ui.components.ExpressiveScreen
 import com.mobilitytracker.ui.theme.CompletedGreen
-import com.mobilitytracker.ui.theme.StreakOrange
 import java.util.Locale
 
 @Composable
@@ -99,12 +98,15 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
                 MetricCard(
                     label = "Aktualna seria",
                     value = "${mobilityStats.currentStreak} dni",
-                    valueColor = StreakOrange,
+                    valueColor = MaterialTheme.colorScheme.onSurface,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier.weight(1f)
                 )
                 MetricCard(
                     label = "Ten tydzień",
                     value = "${mobilityStats.challenge.completedThisWeek}/7",
+                    valueColor = MaterialTheme.colorScheme.onSurface,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -607,22 +609,27 @@ private fun MetricCard(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
-    valueColor: Color = MaterialTheme.colorScheme.onSurface
+    valueColor: Color = MaterialTheme.colorScheme.onSurface,
+    containerColor: Color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
 ) {
+    val shape = RoundedCornerShape(24.dp)
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
-        tonalElevation = 3.dp
+        shape = shape,
+        color = containerColor,
+        tonalElevation = 0.dp
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier
+                .border(1.dp, valueColor.copy(alpha = 0.14f), shape)
+                .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = valueColor.copy(alpha = 0.78f),
+                fontWeight = FontWeight.SemiBold
             )
             Text(
                 text = value,

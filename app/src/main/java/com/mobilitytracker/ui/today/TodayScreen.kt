@@ -68,7 +68,6 @@ import com.mobilitytracker.domain.model.ScheduledStrengthWorkout
 import com.mobilitytracker.ui.components.ExpressiveHeader
 import com.mobilitytracker.ui.components.ExpressiveScreen
 import com.mobilitytracker.ui.components.StatusPill
-import com.mobilitytracker.ui.theme.StreakOrange
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -260,7 +259,9 @@ private fun MobilityChallengeCard(challenge: MobilityChallengeState) {
                 progress = { challenge.progress.coerceIn(0f, 1f) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(10.dp)
+                    .height(10.dp),
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.82f),
+                trackColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.16f)
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -270,13 +271,15 @@ private fun MobilityChallengeCard(challenge: MobilityChallengeState) {
                     label = "Seria",
                     value = "${challenge.currentStreak} dni",
                     modifier = Modifier.weight(1f),
-                    color = StreakOrange
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    containerColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.08f)
                 )
                 StatusPill(
                     label = "Ten tydzień",
                     value = "${challenge.completedThisWeek}/7",
                     modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.tertiary
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    containerColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.08f)
                 )
             }
         }

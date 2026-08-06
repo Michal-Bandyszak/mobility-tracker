@@ -1,6 +1,7 @@
 package com.mobilitytracker.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +15,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -85,26 +85,31 @@ fun StatusPill(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.primary
+    color: Color = MaterialTheme.colorScheme.primary,
+    containerColor: Color = color.copy(alpha = 0.18f)
 ) {
+    val shape = RoundedCornerShape(22.dp)
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(percent = 50), // Fully rounded pill
-        color = color.copy(alpha = 0.18f)
+        shape = shape,
+        color = containerColor
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+            modifier = Modifier
+                .border(1.dp, color.copy(alpha = 0.14f), shape)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = color
+                color = color.copy(alpha = 0.78f),
+                fontWeight = FontWeight.SemiBold
             )
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleMedium,
-                color = color, // Colored value
+                color = color,
                 fontWeight = FontWeight.Bold
             )
         }
