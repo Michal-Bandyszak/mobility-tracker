@@ -88,7 +88,7 @@ class TodayViewModel @Inject constructor(
         viewModelScope.launch {
             toggleCompletion(workout.cycleNumber, workout.videoOrder)
             if (!workout.isCompleted) NotificationHelper.cancel(context)
-            loadToday()
+            loadToday(showLoading = false)
         }
     }
 

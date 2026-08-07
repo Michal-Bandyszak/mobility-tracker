@@ -2,6 +2,7 @@ package com.mobilitytracker.ui.today
 
 import android.content.Intent
 import com.mobilitytracker.data.model.TrackingType
+import com.mobilitytracker.data.model.WARMUP_SET_NUMBER
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -14,7 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -73,7 +74,10 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 @Composable
-fun TodayScreen(viewModel: TodayViewModel = hiltViewModel()) {
+fun TodayScreen(
+    scrollState: ScrollState,
+    viewModel: TodayViewModel = hiltViewModel()
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -111,7 +115,8 @@ fun TodayScreen(viewModel: TodayViewModel = hiltViewModel()) {
                     viewModel.restoreStrengthExerciseToday(slotId)
                 },
                 onMessageShown = viewModel::consumeMessage,
-                onRefresh = { viewModel.loadToday() }
+                onRefresh = { viewModel.loadToday() },
+                scrollState = scrollState
             )
         }
     }
@@ -126,7 +131,8 @@ private fun TodayContent(
     onChangeStrengthExerciseToday: (String, String) -> Unit,
     onRestoreStrengthExerciseToday: (String) -> Unit,
     onMessageShown: () -> Unit,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    scrollState: ScrollState
 ) {
     val mobilityWorkout = state.mobilityWorkout
     val strengthWorkout = state.strengthWorkout
@@ -159,7 +165,7 @@ private fun TodayContent(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(horizontal = 18.dp, vertical = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -315,7 +321,9 @@ private fun NextMobilityCard(workout: DayWorkout) {
 @Composable
 private fun MobilityWorkoutCard(workout: DayWorkout, onToggle: () -> Unit, onRefresh: () -> Unit) {
     val context = LocalContext.current
-    var expanded by rememberSaveable { mutableStateOf(true) }
+    var expanded by rememberSaveable(workout.cycleNumber, workout.videoOrder, workout.isCompleted) {
+        mutableStateOf(!workout.isCompleted)
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(
@@ -343,7 +351,9 @@ private fun MobilityWorkoutCard(workout: DayWorkout, onToggle: () -> Unit, onRef
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 LinearProgressIndicator(
                     progress = { workout.videoOrder.toFloat() / CYCLE_LENGTH },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
 
                 Card(
@@ -446,6 +456,7 @@ private fun StrengthWorkoutCard(
 ) {
     val context = LocalContext.current
     var pickerExercise by remember { mutableStateOf<StrengthExerciseDefinition?>(null) }
+    var resourcesExpanded by rememberSaveable { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -477,14 +488,21 @@ private fun StrengthWorkoutCard(
 
             WarmupCard()
 
-            STRENGTH_RESOURCE_LINKS.forEach { link ->
-                OutlinedButton(
-                    onClick = {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link.url)))
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(link.title)
+            TextButton(onClick = { resourcesExpanded = !resourcesExpanded }) {
+                Text(if (resourcesExpanded) "Ukryj materiały dodatkowe" else "Pokaż materiały dodatkowe")
+            }
+            AnimatedVisibility(visible = resourcesExpanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    STRENGTH_RESOURCE_LINKS.forEach { link ->
+                        OutlinedButton(
+                            onClick = {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link.url)))
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(link.title)
+                        }
+                    }
                 }
             }
 
@@ -532,6 +550,9 @@ private fun StrengthWorkoutCard(
 
 @Composable
 private fun WarmupCard() {
+    var completed by rememberSaveable { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(true) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -542,12 +563,43 @@ private fun WarmupCard() {
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text("Rozgrzewka", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            WARMUP_ROUTINE.forEachIndexed { index, step ->
-                Text(
-                    text = "${index + 1}. ${step.name} — ${step.prescription}",
-                    style = MaterialTheme.typography.bodySmall
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("Rozgrzewka", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    if (completed) {
+                        Text("Zrobiona", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                if (completed) {
+                    TextButton(onClick = { expanded = !expanded }) {
+                        Text(if (expanded) "Zwiń" else "Rozwiń")
+                    }
+                }
+            }
+
+            AnimatedVisibility(visible = expanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    WARMUP_ROUTINE.forEachIndexed { index, step ->
+                        Text(
+                            text = "${index + 1}. ${step.name} — ${step.prescription}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = completed,
+                            onCheckedChange = { checked ->
+                                completed = checked
+                                if (checked) expanded = false
+                            }
+                        )
+                        Text(if (completed) "Rozgrzewka zakończona" else "Oznacz rozgrzewkę jako zakończoną")
+                    }
+                }
             }
         }
     }
@@ -639,6 +691,11 @@ private fun StrengthExerciseCard(
     onRestore: () -> Unit
 ) {
     val context = LocalContext.current
+    val completedWorkingSets = (1..exercise.sets).count { setNumber ->
+        logs.containsKey(strengthLogKey(exercise.id, setNumber))
+    }
+    val isComplete = completedWorkingSets == exercise.sets
+    var expanded by rememberSaveable(exercise.id, isComplete) { mutableStateOf(!isComplete) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -650,66 +707,99 @@ private fun StrengthExerciseCard(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(
-                text = exercise.section.uppercase(),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = exercise.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            if (exercise.isTodayOverride) {
-                Text(
-                    text = "Zmienione na dziś",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-            Text(
-                text = buildExercisePrescription(exercise),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            if (exercise.notes.isNotBlank()) {
-                Text(
-                    text = exercise.notes,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-
-            if (exercise.videoUrl != null) {
-                OutlinedButton(
-                    onClick = {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(exercise.videoUrl)))
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Zobacz technikę na YouTube")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = exercise.section.uppercase(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = exercise.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (isComplete) {
+                        Text(
+                            text = "Zrobione • $completedWorkingSets/${exercise.sets} serii",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                if (isComplete) {
+                    TextButton(onClick = { expanded = !expanded }) {
+                        Text(if (expanded) "Zwiń" else "Rozwiń")
+                    }
                 }
             }
 
-            if (exercise.isTodayOverride) {
-                TextButton(onClick = onRestore, modifier = Modifier.fillMaxWidth()) {
-                    Text("Przywróć z planu")
+            AnimatedVisibility(visible = expanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (exercise.isTodayOverride) {
+                        Text(
+                            text = "Zmienione na dziś",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Text(
+                        text = buildExercisePrescription(exercise),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (exercise.notes.isNotBlank()) {
+                        Text(text = exercise.notes, style = MaterialTheme.typography.bodySmall)
+                    }
+
+                    if (exercise.videoUrl != null) {
+                        OutlinedButton(
+                            onClick = {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(exercise.videoUrl)))
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Zobacz technikę na YouTube")
+                        }
+                    }
+
+                    if (exercise.isTodayOverride) {
+                        TextButton(onClick = onRestore, modifier = Modifier.fillMaxWidth()) {
+                            Text("Przywróć z planu")
+                        }
+                    }
+                    TextButton(onClick = onChange, modifier = Modifier.fillMaxWidth()) {
+                        Text(if (exercise.isTodayOverride) "Wybierz inne" else "Zmień tylko dzisiaj")
+                    }
+
+                    HorizontalDivider()
+
+                    if (exercise.hasWarmupSet) {
+                        val warmupLog = logs[strengthLogKey(exercise.id, WARMUP_SET_NUMBER)]
+                        StrengthSetLogRow(
+                            exercise = exercise,
+                            setNumber = WARMUP_SET_NUMBER,
+                            log = warmupLog,
+                            onSaveSet = onSaveSet
+                        )
+                        HorizontalDivider()
+                    }
+
+                    (1..exercise.sets).forEach { setNumber ->
+                        val log = logs[strengthLogKey(exercise.id, setNumber)]
+                        StrengthSetLogRow(
+                            exercise = exercise,
+                            setNumber = setNumber,
+                            log = log,
+                            onSaveSet = onSaveSet
+                        )
+                    }
                 }
-            }
-            TextButton(onClick = onChange, modifier = Modifier.fillMaxWidth()) {
-                Text(if (exercise.isTodayOverride) "Wybierz inne" else "Zmień tylko dzisiaj")
-            }
-
-            HorizontalDivider()
-
-            (1..exercise.sets).forEach { setNumber ->
-                val log = logs[strengthLogKey(exercise.id, setNumber)]
-                StrengthSetLogRow(
-                    exercise = exercise,
-                    setNumber = setNumber,
-                    log = log,
-                    onSaveSet = onSaveSet
-                )
             }
         }
     }
@@ -741,7 +831,7 @@ private fun StrengthSetLogRow(
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "Seria $setNumber",
+            text = if (setNumber == WARMUP_SET_NUMBER) "Seria rozgrzewkowa" else "Seria $setNumber",
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Medium
         )
@@ -844,6 +934,13 @@ private fun StrengthSetLogRow(
                 }
             }
         }
+        if (isCompleted) {
+            TextButton(
+                onClick = { onSaveSet(exerciseId, setNumber, null, null, null, null) }
+            ) {
+                Text("Usuń zapis")
+            }
+        }
     }
 }
 
@@ -874,7 +971,8 @@ private fun NoTrainingCard(title: String, description: String) {
 }
 
 private fun buildExercisePrescription(exercise: StrengthExerciseDefinition): String {
-    val parts = mutableListOf("${exercise.sets} x ${exercise.reps}")
+    val workingSets = "${exercise.sets} x ${exercise.reps}"
+    val parts = mutableListOf(if (exercise.hasWarmupSet) "1 rozgrzewkowa + $workingSets" else workingSets)
     if (exercise.tempo.isNotBlank()) parts += "tempo ${exercise.tempo}"
     if (exercise.rir.isNotBlank()) parts += exercise.rir
     exercise.restSeconds?.let { parts += "przerwa ${it}s" }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,11 +45,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.mobilitytracker.domain.model.DayWorkout
 import com.mobilitytracker.ui.components.ExpressiveHeader
 import com.mobilitytracker.ui.components.ExpressiveScreen
-import com.mobilitytracker.ui.theme.CompletedGreen
-import com.mobilitytracker.ui.theme.TodayAmber
 
 @Composable
-fun CalendarScreen(viewModel: CalendarViewModel = hiltViewModel()) {
+fun CalendarScreen(
+    listState: LazyListState,
+    viewModel: CalendarViewModel = hiltViewModel()
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     if (state.isLoading) {
@@ -71,6 +73,7 @@ fun CalendarScreen(viewModel: CalendarViewModel = hiltViewModel()) {
 
     ExpressiveScreen {
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 18.dp, vertical = 20.dp),
@@ -281,9 +284,21 @@ private fun CycleGrid(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text("✅ zrobione", style = MaterialTheme.typography.labelSmall)
-                Text("🔵 dzisiaj", style = MaterialTheme.typography.labelSmall)
-                Text("○ brak", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    "✓ zrobione",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+                Text(
+                    "● dzisiaj",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    "○ brak",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -292,12 +307,13 @@ private fun CycleGrid(
 @Composable
 private fun DayCell(number: Int, isCompleted: Boolean, isToday: Boolean) {
     val bgColor = when {
-        isCompleted -> CompletedGreen
-        isToday -> TodayAmber
+        isCompleted -> MaterialTheme.colorScheme.tertiaryContainer
+        isToday -> MaterialTheme.colorScheme.primaryContainer
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
     val textColor = when {
-        isCompleted || isToday -> MaterialTheme.colorScheme.onPrimary
+        isCompleted -> MaterialTheme.colorScheme.onTertiaryContainer
+        isToday -> MaterialTheme.colorScheme.onPrimaryContainer
         else -> MaterialTheme.colorScheme.onSurface
     }
 
@@ -380,7 +396,7 @@ private fun WorkoutListItem(
             Text(
                 text = if (workout.isCompleted) "✓" else "○",
                 style = MaterialTheme.typography.titleLarge,
-                color = if (workout.isCompleted) CompletedGreen else MaterialTheme.colorScheme.outline
+                color = if (workout.isCompleted) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline
             )
         }
     }

@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
@@ -59,11 +59,13 @@ import com.mobilitytracker.domain.model.StrengthStatsOverview
 import com.mobilitytracker.domain.model.StrengthTrend
 import com.mobilitytracker.ui.components.ExpressiveHeader
 import com.mobilitytracker.ui.components.ExpressiveScreen
-import com.mobilitytracker.ui.theme.CompletedGreen
 import java.util.Locale
 
 @Composable
-fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
+fun StatsScreen(
+    scrollState: ScrollState,
+    viewModel: StatsViewModel = hiltViewModel()
+) {
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val strengthStats by viewModel.strengthStats.collectAsStateWithLifecycle()
 
@@ -71,7 +73,7 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(horizontal = 18.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
@@ -186,7 +188,7 @@ private fun ChallengeJourneyCard(challenge: MobilityChallengeState) {
                                 .clip(RoundedCornerShape(7.dp))
                                 .background(
                                     when {
-                                        completed -> CompletedGreen
+                                        completed -> MaterialTheme.colorScheme.tertiaryContainer
                                         active -> MaterialTheme.colorScheme.primaryContainer
                                         else -> MaterialTheme.colorScheme.surfaceVariant
                                     }
@@ -197,7 +199,7 @@ private fun ChallengeJourneyCard(challenge: MobilityChallengeState) {
                                 Text(
                                     text = "✓",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onPrimary
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
                             }
                         }
@@ -551,7 +553,9 @@ private fun SessionSummaryCard(session: StrengthSessionSummary) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)
-                    .clip(RoundedCornerShape(999.dp))
+                    .clip(RoundedCornerShape(999.dp)),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
             )
 
             session.exerciseSummaries.take(5).forEach { exercise ->
@@ -587,7 +591,7 @@ private fun SectionHeader(title: String, subtitle: String) {
             modifier = Modifier
                 .size(width = 5.dp, height = 40.dp)
                 .clip(RoundedCornerShape(24.dp))
-                .background(MaterialTheme.colorScheme.tertiary)
+                .background(MaterialTheme.colorScheme.primary)
         )
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
@@ -644,7 +648,7 @@ private fun MetricCard(
 @Composable
 private fun TrendPill(trend: StrengthTrend) {
     val (label, color) = when (trend) {
-        StrengthTrend.UP -> "rośnie" to CompletedGreen
+        StrengthTrend.UP -> "rośnie" to MaterialTheme.colorScheme.tertiary
         StrengthTrend.FLAT -> "stabilnie" to MaterialTheme.colorScheme.primary
         StrengthTrend.DOWN -> "spadek" to MaterialTheme.colorScheme.error
         StrengthTrend.UNKNOWN -> "brak trendu" to MaterialTheme.colorScheme.outline
@@ -804,7 +808,12 @@ private fun CycleBreakdownCard(stats: CycleStats) {
                         modifier = Modifier
                             .weight(0.6f)
                             .height(8.dp),
-                        color = if (breakdown.isComplete) CompletedGreen else MaterialTheme.colorScheme.primary
+                        color = if (breakdown.isComplete) {
+                            MaterialTheme.colorScheme.tertiary
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        },
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
                     Text(
                         text = "${breakdown.completedCount}/${breakdown.totalCount}",

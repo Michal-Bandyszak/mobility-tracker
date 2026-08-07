@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DarkMode
@@ -56,7 +56,10 @@ import java.time.DayOfWeek
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(
+    scrollState: ScrollState,
+    viewModel: SettingsViewModel = hiltViewModel()
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showTimePicker by remember { mutableStateOf(false) }
@@ -111,7 +114,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -481,8 +484,9 @@ private fun StrengthPlanPreview(workout: StrengthWorkoutDefinition) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             workout.exercises.forEach { exercise ->
+                val warmup = if (exercise.hasWarmupSet) "1 rozgrzewkowa + " else ""
                 Text(
-                    text = "${exercise.section}: ${exercise.name} · ${exercise.sets} x ${exercise.reps}",
+                    text = "${exercise.section}: ${exercise.name} · $warmup${exercise.sets} x ${exercise.reps}",
                     style = MaterialTheme.typography.bodySmall
                 )
             }

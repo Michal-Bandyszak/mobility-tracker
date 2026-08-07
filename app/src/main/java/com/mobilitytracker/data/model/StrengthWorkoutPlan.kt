@@ -10,6 +10,8 @@ enum class TrackingType {
     NONE
 }
 
+const val WARMUP_SET_NUMBER = 0
+
 data class StrengthWorkoutDefinition(
     val day: Int,
     val title: String,
@@ -56,6 +58,9 @@ data class StrengthExerciseDefinition(
     val choices: List<ExerciseCatalogEntry> = emptyList()
 ) {
     val isTodayOverride: Boolean get() = id != defaultExerciseId
+    val hasWarmupSet: Boolean
+        get() = trackingType == TrackingType.WEIGHT_AND_REPS ||
+            trackingType == TrackingType.BAND_AND_REPS
 }
 
 data class WarmupStep(

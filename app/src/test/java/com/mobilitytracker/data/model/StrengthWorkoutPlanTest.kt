@@ -46,6 +46,28 @@ class StrengthWorkoutPlanTest {
     }
 
     @Test
+    fun `loaded exercises include a warmup set but core does not`() {
+        val plan = getStrengthWorkoutByDay(1)!!
+
+        assertTrue(plan.exercises.single { it.slotId == "day1_squat" }.hasWarmupSet)
+        assertTrue(plan.exercises.single { it.slotId == "day1_vertical_pull" }.hasWarmupSet)
+        assertFalse(plan.exercises.single { it.slotId == "day1_core" }.hasWarmupSet)
+    }
+
+    @Test
+    fun `main movements have at most two same-day alternatives including floor press for a busy bench`() {
+        val plans = listOf(getStrengthWorkoutByDay(1)!!, getStrengthWorkoutByDay(2)!!)
+
+        assertTrue(plans.flatMap { it.exercises }.filter { it.section == "Główne" }.all { it.choices.size <= 3 })
+        assertTrue(
+            getStrengthWorkoutByDay(1)!!.exercises
+                .single { it.slotId == "day1_horizontal_push" }
+                .choices
+                .any { it.id == "day1_dumbbell_floor_press" }
+        )
+    }
+
+    @Test
     fun `every exercise has a YouTube technique link`() {
         assertTrue(
             getStrengthExerciseCatalog().all { entry ->

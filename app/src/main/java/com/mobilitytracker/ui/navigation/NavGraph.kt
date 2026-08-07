@@ -3,6 +3,8 @@ package com.mobilitytracker.ui.navigation
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
@@ -50,6 +52,10 @@ data class NavItem(
 @Composable
 fun AppNavGraph() {
     val navController = rememberNavController()
+    val todayScrollState = rememberScrollState()
+    val calendarListState = rememberLazyListState()
+    val statsScrollState = rememberScrollState()
+    val settingsScrollState = rememberScrollState()
 
     val navItems = listOf(
         NavItem("Dzisiaj", Icons.Default.Home, Today),
@@ -111,10 +117,10 @@ fun AppNavGraph() {
             startDestination = Today,
             modifier = Modifier.padding(padding)
         ) {
-            composable<Today> { TodayScreen() }
-            composable<Calendar> { CalendarScreen() }
-            composable<Stats> { StatsScreen() }
-            composable<Settings> { SettingsScreen() }
+            composable<Today> { TodayScreen(scrollState = todayScrollState) }
+            composable<Calendar> { CalendarScreen(listState = calendarListState) }
+            composable<Stats> { StatsScreen(scrollState = statsScrollState) }
+            composable<Settings> { SettingsScreen(scrollState = settingsScrollState) }
         }
     }
 }

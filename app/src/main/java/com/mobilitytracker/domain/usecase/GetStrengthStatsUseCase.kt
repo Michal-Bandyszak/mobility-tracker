@@ -4,6 +4,7 @@ import com.mobilitytracker.data.model.StrengthExerciseDefinition
 import com.mobilitytracker.data.model.StrengthWorkoutDefinition
 import com.mobilitytracker.data.model.StrengthSetLog
 import com.mobilitytracker.data.model.TrackingType
+import com.mobilitytracker.data.model.WARMUP_SET_NUMBER
 import com.mobilitytracker.data.repository.StrengthRepository
 import com.mobilitytracker.domain.model.StrengthExerciseProgress
 import com.mobilitytracker.domain.model.StrengthPerformance
@@ -44,7 +45,7 @@ class GetStrengthStatsUseCase @Inject constructor(
 
         val trackedLogs = logs.filter { log ->
             val trackingType = exercises[log.exerciseId]?.trackingType ?: TrackingType.NONE
-            trackingType != TrackingType.NONE
+            log.setNumber != WARMUP_SET_NUMBER && trackingType != TrackingType.NONE
         }
 
         val recentSessions = buildSessionSummaries(trackedLogs, workouts, exercises)

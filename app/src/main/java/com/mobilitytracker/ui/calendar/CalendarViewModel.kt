@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mobilitytracker.data.model.StrengthSetLog
 import com.mobilitytracker.data.model.TrackingType
+import com.mobilitytracker.data.model.WARMUP_SET_NUMBER
 import com.mobilitytracker.data.repository.CompletionRepository
 import com.mobilitytracker.data.repository.StrengthRepository
 import com.mobilitytracker.data.repository.WorkoutRepository
@@ -115,7 +116,10 @@ class CalendarViewModel @Inject constructor(
         exercises: Map<String, com.mobilitytracker.data.model.ExerciseCatalogEntry>
     ): List<StrengthCalendarEntry> =
         asSequence()
-            .filter { exercises[it.exerciseId]?.trackingType != TrackingType.NONE }
+            .filter {
+                it.setNumber != WARMUP_SET_NUMBER &&
+                    exercises[it.exerciseId]?.trackingType != TrackingType.NONE
+            }
             .mapNotNull { log ->
                 val date = runCatching { LocalDate.parse(log.date) }.getOrNull()
                 if (date != null) (date to log.planDay) to log else null

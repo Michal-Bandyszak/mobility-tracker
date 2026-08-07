@@ -2,7 +2,7 @@ package com.mobilitytracker.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Primary = Color(0xFF6366F1) // Indigo-500
+val Primary = Color(0xFF4F46E5) // Indigo-600
 val PrimaryDark = Color(0xFF9EB1FF) // Indigo dark accent
 val OnPrimary = Color(0xFFFFFFFF)
 val OnPrimaryDark = Color(0xFF182449) // Indigo dark surface
@@ -41,7 +41,3 @@ val OnSurfaceVariant = Color(0xFF64748B) // Slate-500
 val OnSurfaceVariantDark = Color(0xFFA8AFBC) // Muted cool gray
 val Outline = Color(0xFFE2E8F0) // Slate-200
 val OutlineDark = Color(0xFF343A46) // Neutral dark outline
-
-val CompletedGreen = Color(0xFF10B981) // Emerald-500
-val TodayAmber = Color(0xFFF59E0B) // Amber-500
-val PendingGray = Color(0xFF94A3B8) // Slate-400
