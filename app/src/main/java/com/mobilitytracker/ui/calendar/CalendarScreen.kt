@@ -45,10 +45,6 @@ import com.mobilitytracker.ui.components.CardHeader
 import com.mobilitytracker.ui.components.DoneMark
 import com.mobilitytracker.ui.components.ExpressiveHeader
 import com.mobilitytracker.ui.components.ExpressiveScreen
-import com.mobilitytracker.ui.components.planName
-import com.mobilitytracker.ui.components.setsLabel
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @Composable
 fun CalendarScreen(
@@ -94,7 +90,6 @@ fun CalendarScreen(
                     onNext = viewModel::nextCycle
                 )
             }
-            item { StrengthHistoryCard(entries = state.strengthHistory) }
             item {
                 WorkoutListCard(
                     workouts = state.workouts,
@@ -197,60 +192,6 @@ private fun LegendItem(label: String, fill: Color? = null, outline: Color? = nul
             }
         )
         Text(text = label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun StrengthHistoryCard(entries: List<StrengthCalendarEntry>) {
-    val dateFormat = DateTimeFormatter.ofPattern("d MMMM", Locale.forLanguageTag("pl"))
-
-    AppCard {
-        CardHeader(title = "Historia siłowni", meta = "Dni z zapisanymi seriami")
-        if (entries.isEmpty()) {
-            Text(
-                text = "Brak zapisanych treningów siłowych.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            return@AppCard
-        }
-        entries.take(12).forEachIndexed { index, entry ->
-            if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = planName(entry.planDay),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = entry.dayLabel.replaceFirstChar { it.uppercase() },
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = entry.date.format(dateFormat),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Text(
-                    text = setsLabel(entry.loggedSets),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
     }
 }
 
