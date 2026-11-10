@@ -239,13 +239,6 @@ fun DoneMark(done: Boolean, modifier: Modifier = Modifier, active: Boolean = fal
 /** „1 dzień”, „2 dni”, „5 dni”. */
 fun daysLabel(days: Int): String = if (days == 1) "1 dzień" else "$days dni"
 
-/** „1 seria”, „3 serie”, „12 serii”. */
-fun setsLabel(sets: Int): String = when {
-    sets == 1 -> "1 seria"
-    sets % 10 in 2..4 && sets % 100 !in 12..14 -> "$sets serie"
-    else -> "$sets serii"
-}
-
 /** Cienki pasek postępu bez kropki na końcu. */
 @Composable
 fun ThinProgress(

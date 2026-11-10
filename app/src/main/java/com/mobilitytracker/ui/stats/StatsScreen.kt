@@ -57,7 +57,6 @@ import com.mobilitytracker.ui.components.StatValue
 import com.mobilitytracker.ui.components.ThinProgress
 import com.mobilitytracker.ui.components.daysLabel
 import com.mobilitytracker.ui.components.planName
-import com.mobilitytracker.ui.components.setsLabel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -330,19 +329,10 @@ private fun RecentSessionsCard(sessions: List<StrengthSessionSummary>) {
         sessions.forEachIndexed { index, session ->
             if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Trening ${planName(session.planDay)} · ${shortDate(session.date)}",
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = "${session.completedTrackedSets}/${session.plannedTrackedSets} serii",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                ThinProgress(progress = session.completionRatio)
+                Text(
+                    text = "Trening ${planName(session.planDay)} · ${shortDate(session.date)}",
+                    style = MaterialTheme.typography.titleSmall
+                )
                 session.exerciseSummaries.take(5).forEach { exercise ->
                     Row {
                         Text(
@@ -351,7 +341,7 @@ private fun RecentSessionsCard(sessions: List<StrengthSessionSummary>) {
                             modifier = Modifier.weight(1f)
                         )
                         Text(
-                            text = exercise.bestPerformance?.formatFor(exercise.trackingType) ?: setsLabel(exercise.loggedSets),
+                            text = exercise.bestPerformance?.formatFor(exercise.trackingType) ?: "zrobione",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
