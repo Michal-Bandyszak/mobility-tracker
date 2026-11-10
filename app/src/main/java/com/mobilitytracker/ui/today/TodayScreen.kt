@@ -248,6 +248,7 @@ private fun TodayContent(
                     StrengthWorkoutCard(
                         workout = strengthWorkout,
                         logs = state.strengthLogs,
+                        previousLogs = state.previousStrengthLogs,
                         onSaveSet = onSaveStrengthSet,
                         onChooseStrengthWorkoutToday = onChooseStrengthWorkoutToday,
                         onChangeExercise = onChangeStrengthExerciseToday,
@@ -501,6 +502,7 @@ private fun MobilityWorkoutCard(
 private fun StrengthWorkoutCard(
     workout: ScheduledStrengthWorkout,
     logs: Map<String, StrengthSetLog>,
+    previousLogs: Map<String, StrengthSetLog>,
     onSaveSet: (String, Int, Double?, Int?, Int?, String?) -> Unit,
     onChooseStrengthWorkoutToday: (Int) -> Unit,
     onChangeExercise: (String, String) -> Unit,
@@ -541,6 +543,7 @@ private fun StrengthWorkoutCard(
             StrengthExerciseBlock(
                 exercise = exercise,
                 logs = logs,
+                previousLogs = previousLogs,
                 onSaveSet = onSaveSet,
                 onChange = { pickerExercise = exercise },
                 onRestore = { onRestoreExercise(exercise.slotId) }
@@ -677,6 +680,7 @@ private fun StrengthPlanSwitch(
 private fun StrengthExerciseBlock(
     exercise: StrengthExerciseDefinition,
     logs: Map<String, StrengthSetLog>,
+    previousLogs: Map<String, StrengthSetLog>,
     onSaveSet: (String, Int, Double?, Int?, Int?, String?) -> Unit,
     onChange: () -> Unit,
     onRestore: () -> Unit
@@ -745,6 +749,7 @@ private fun StrengthExerciseBlock(
                         exercise = exercise,
                         setNumber = WARMUP_SET_NUMBER,
                         log = logs[strengthLogKey(exercise.id, WARMUP_SET_NUMBER)],
+                        previous = previousSetLog(previousLogs, exercise.id, WARMUP_SET_NUMBER),
                         onSaveSet = onSaveSet
                     )
                 }
@@ -753,6 +758,7 @@ private fun StrengthExerciseBlock(
                         exercise = exercise,
                         setNumber = setNumber,
                         log = logs[strengthLogKey(exercise.id, setNumber)],
+                        previous = previousSetLog(previousLogs, exercise.id, setNumber),
                         onSaveSet = onSaveSet
                     )
                 }
@@ -766,22 +772,25 @@ private fun StrengthSetLogRow(
     exercise: StrengthExerciseDefinition,
     setNumber: Int,
     log: StrengthSetLog?,
+    previous: StrengthSetLog?,
     onSaveSet: (String, Int, Double?, Int?, Int?, String?) -> Unit
 ) {
     val exerciseId = exercise.id
     val trackingType = exercise.trackingType
+    // Niezapisana seria startuje z wartościami z poprzedniego treningu; ✓ zapisuje je bez przepisywania.
+    val source = log ?: previous
 
-    var weightText by remember(log?.weightKg, exerciseId, setNumber) {
-        mutableStateOf(log?.weightKg?.let { formatWeight(it) } ?: "")
+    var weightText by remember(source?.weightKg, exerciseId, setNumber) {
+        mutableStateOf(source?.weightKg?.let { formatWeight(it) } ?: "")
     }
-    var repsText by remember(log?.reps, exerciseId, setNumber) {
-        mutableStateOf(log?.reps?.toString() ?: "")
+    var repsText by remember(source?.reps, exerciseId, setNumber) {
+        mutableStateOf(source?.reps?.toString() ?: "")
     }
-    var timeText by remember(log?.timeSeconds, exerciseId, setNumber) {
-        mutableStateOf(log?.timeSeconds?.toString() ?: "")
+    var timeText by remember(source?.timeSeconds, exerciseId, setNumber) {
+        mutableStateOf(source?.timeSeconds?.toString() ?: "")
     }
-    var bandText by remember(log?.bandColor, exerciseId, setNumber) {
-        mutableStateOf(log?.bandColor ?: "")
+    var bandText by remember(source?.bandColor, exerciseId, setNumber) {
+        mutableStateOf(source?.bandColor ?: "")
     }
 
     val isCompleted = log != null

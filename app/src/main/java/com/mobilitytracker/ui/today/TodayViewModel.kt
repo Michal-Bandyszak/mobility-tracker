@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mobilitytracker.data.model.StrengthSetLog
+import com.mobilitytracker.data.model.WARMUP_SET_NUMBER
 import com.mobilitytracker.data.repository.MorningWarmupRepository
 import com.mobilitytracker.data.repository.StrengthRepository
 import com.mobilitytracker.data.repository.WorkoutRepository
@@ -35,6 +36,7 @@ data class TodayUiState(
     val morningWarmup: MorningWarmup? = null,
     val strengthWorkout: ScheduledStrengthWorkout? = null,
     val strengthLogs: Map<String, StrengthSetLog> = emptyMap(),
+    val previousStrengthLogs: Map<String, StrengthSetLog> = emptyMap(),
     val message: String? = null
 )
 
@@ -185,16 +187,18 @@ class TodayViewModel @Inject constructor(
     private fun observeStrengthLogs(strengthWorkout: ScheduledStrengthWorkout?) {
         strengthLogsJob?.cancel()
         if (strengthWorkout == null) {
-            _state.value = _state.value.copy(strengthLogs = emptyMap())
+            _state.value = _state.value.copy(strengthLogs = emptyMap(), previousStrengthLogs = emptyMap())
             return
         }
 
+        val date = strengthWorkout.date.toString()
         strengthLogsJob = viewModelScope.launch {
-            strengthRepository.observeLogsForDate(strengthWorkout.date).collectLatest { logs ->
+            strengthRepository.observeAllLogs().collectLatest { logs ->
                 _state.value = _state.value.copy(
                     strengthLogs = logs
-                        .filter { it.planDay == strengthWorkout.planDay }
-                        .associateBy { strengthLogKey(it.exerciseId, it.setNumber) }
+                        .filter { it.date == date && it.planDay == strengthWorkout.planDay }
+                        .associateBy { strengthLogKey(it.exerciseId, it.setNumber) },
+                    previousStrengthLogs = previousStrengthLogs(logs, date)
                 )
             }
         }
@@ -202,3 +206,20 @@ class TodayViewModel @Inject constructor(
 }
 
 fun strengthLogKey(exerciseId: String, setNumber: Int): String = "$exerciseId:$setNumber"
+
+/** Serie z ostatniego dnia przed [beforeDate], w którym ćwiczenie było zapisane, kluczowane [strengthLogKey]. */
+fun previousStrengthLogs(logs: List<StrengthSetLog>, beforeDate: String): Map<String, StrengthSetLog> =
+    logs.filter { it.date < beforeDate }
+        .groupBy { it.exerciseId }
+        .values
+        .flatMap { exerciseLogs ->
+            val lastDate = exerciseLogs.maxOf { it.date }
+            exerciseLogs.filter { it.date == lastDate }
+        }
+        .associateBy { strengthLogKey(it.exerciseId, it.setNumber) }
+
+/** Poprzedni zapis tej serii, a gdy wtedy było mniej serii: ostatnia seria robocza z tamtego dnia. */
+fun previousSetLog(previous: Map<String, StrengthSetLog>, exerciseId: String, setNumber: Int): StrengthSetLog? =
+    previous[strengthLogKey(exerciseId, setNumber)]
+        ?: if (setNumber == WARMUP_SET_NUMBER) null
+        else previous.values.filter { it.exerciseId == exerciseId && it.setNumber != WARMUP_SET_NUMBER }.maxByOrNull { it.setNumber }
