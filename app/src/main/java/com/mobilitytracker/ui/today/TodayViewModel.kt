@@ -4,11 +4,13 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mobilitytracker.data.model.StrengthSetLog
+import com.mobilitytracker.data.repository.MorningWarmupRepository
 import com.mobilitytracker.data.repository.StrengthRepository
 import com.mobilitytracker.data.repository.WorkoutRepository
 import com.mobilitytracker.data.video.VideoResolver
 import com.mobilitytracker.domain.model.DayWorkout
 import com.mobilitytracker.domain.model.MobilityChallengeState
+import com.mobilitytracker.domain.model.MorningWarmup
 import com.mobilitytracker.domain.model.ScheduledStrengthWorkout
 import com.mobilitytracker.domain.usecase.GetTodayWorkoutUseCase
 import com.mobilitytracker.domain.usecase.ToggleCompletionUseCase
@@ -30,6 +32,7 @@ data class TodayUiState(
     val mobilityWorkout: DayWorkout? = null,
     val nextMobilityWorkout: DayWorkout? = null,
     val mobilityChallenge: MobilityChallengeState? = null,
+    val morningWarmup: MorningWarmup? = null,
     val strengthWorkout: ScheduledStrengthWorkout? = null,
     val strengthLogs: Map<String, StrengthSetLog> = emptyMap(),
     val message: String? = null
@@ -41,6 +44,7 @@ class TodayViewModel @Inject constructor(
     private val toggleCompletion: ToggleCompletionUseCase,
     private val workoutRepository: WorkoutRepository,
     private val strengthRepository: StrengthRepository,
+    private val morningWarmupRepository: MorningWarmupRepository,
     private val videoResolver: VideoResolver,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -71,6 +75,7 @@ class TodayViewModel @Inject constructor(
                             mobilityWorkout = result.plan.mobilityWorkout,
                             nextMobilityWorkout = result.plan.nextMobilityWorkout,
                             mobilityChallenge = result.plan.mobilityChallenge,
+                            morningWarmup = result.plan.morningWarmup,
                             strengthWorkout = result.plan.strengthWorkout
                         )
                         observeStrengthLogs(result.plan.strengthWorkout)
@@ -89,6 +94,12 @@ class TodayViewModel @Inject constructor(
             toggleCompletion(workout.cycleNumber, workout.videoOrder)
             if (!workout.isCompleted) NotificationHelper.cancel(context)
             loadToday(showLoading = false)
+        }
+    }
+
+    fun rerollMorningWarmup() {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(morningWarmup = morningWarmupRepository.reroll())
         }
     }
 

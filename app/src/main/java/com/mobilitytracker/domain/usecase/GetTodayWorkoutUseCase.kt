@@ -1,6 +1,7 @@
 package com.mobilitytracker.domain.usecase
 
 import com.mobilitytracker.data.repository.CompletionRepository
+import com.mobilitytracker.data.repository.MorningWarmupRepository
 import com.mobilitytracker.data.repository.StrengthRepository
 import com.mobilitytracker.data.repository.WorkoutRepository
 import com.mobilitytracker.data.video.VideoResolver
@@ -15,6 +16,7 @@ class GetTodayWorkoutUseCase @Inject constructor(
     private val workoutRepository: WorkoutRepository,
     private val completionRepository: CompletionRepository,
     private val strengthRepository: StrengthRepository,
+    private val morningWarmupRepository: MorningWarmupRepository,
     private val videoResolver: VideoResolver
 ) {
     sealed class Result {
@@ -44,13 +46,15 @@ class GetTodayWorkoutUseCase @Inject constructor(
             )
         } else null
         val strengthWorkout = buildStrengthWorkout(today)
+        val morningWarmup = morningWarmupRepository.getToday()
 
         return Result.Success(
             TodayTrainingPlan(
                 mobilityWorkout = mobilityWorkout,
                 nextMobilityWorkout = nextMobilityWorkout,
                 mobilityChallenge = challenge,
-                strengthWorkout = strengthWorkout
+                strengthWorkout = strengthWorkout,
+                morningWarmup = morningWarmup
             )
         )
     }

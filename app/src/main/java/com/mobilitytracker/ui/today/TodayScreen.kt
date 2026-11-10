@@ -1,5 +1,6 @@
 package com.mobilitytracker.ui.today
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import com.mobilitytracker.data.model.TrackingType
 import com.mobilitytracker.data.model.WARMUP_SET_NUMBER
@@ -65,6 +66,7 @@ import com.mobilitytracker.data.model.WARMUP_ROUTINE
 import com.mobilitytracker.domain.model.DayWorkout
 import com.mobilitytracker.domain.model.MOBILITY_CHALLENGE_SESSIONS
 import com.mobilitytracker.domain.model.MobilityChallengeState
+import com.mobilitytracker.domain.model.MorningWarmup
 import com.mobilitytracker.domain.model.ScheduledStrengthWorkout
 import com.mobilitytracker.ui.components.ExpressiveHeader
 import com.mobilitytracker.ui.components.ExpressiveScreen
@@ -72,6 +74,40 @@ import com.mobilitytracker.ui.components.StatusPill
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+
+private data class FootExercise(
+    val title: String,
+    val dosage: String,
+    val instruction: String
+)
+
+private val FOOT_ROUTINE = listOf(
+    FootExercise(
+        title = "Short foot / aktywne podbicie",
+        dosage = "3 × 8 powt. po 5–8 s • lewa 4 serie, prawa 3",
+        instruction = "Boso oprzyj stopę na pięcie i podstawach palców. Unieś łuk bez podwijania palców."
+    ),
+    FootExercise(
+        title = "Wspięcia na palce na jednej nodze",
+        dosage = "3 × 10–15 na nogę • 2 s w górę i 2 s w dół, gdy jest łatwo",
+        instruction = "Duży palec cały czas dociska podłoże, a ciężar pozostaje nad przodem stopy."
+    ),
+    FootExercise(
+        title = "Piszczelowy tylny z gumą",
+        dosage = "3 × 12–15 • lewa 4 serie",
+        instruction = "Guma ciągnie stopę na zewnątrz; kieruj przód stopy do środka bez obracania całej nogi."
+    ),
+    FootExercise(
+        title = "Stanie na jednej nodze z aktywnym łukiem",
+        dosage = "3 × 30–45 s • potem 2 × 8–10 małych przysiadów",
+        instruction = "Najpierw zrób short foot. Nie pozwalaj, żeby kolano ani łuk mocno uciekały do środka."
+    ),
+    FootExercise(
+        title = "Mobilność kostki i łydki",
+        dosage = "2 × 10–15 ruchów kolana nad palce + 2 × 30–45 s rozciągania",
+        instruction = "Pięta zostaje na podłożu. Ruch spokojny, bez agresywnego rozciągania."
+    )
+)
 
 @Composable
 fun TodayScreen(
@@ -116,6 +152,7 @@ fun TodayScreen(
                 },
                 onMessageShown = viewModel::consumeMessage,
                 onRefresh = { viewModel.loadToday() },
+                onReroll = viewModel::rerollMorningWarmup,
                 scrollState = scrollState
             )
         }
@@ -132,6 +169,7 @@ private fun TodayContent(
     onRestoreStrengthExerciseToday: (String) -> Unit,
     onMessageShown: () -> Unit,
     onRefresh: () -> Unit,
+    onReroll: () -> Unit,
     scrollState: ScrollState
 ) {
     val mobilityWorkout = state.mobilityWorkout
@@ -179,6 +217,8 @@ private fun TodayContent(
                 MobilityChallengeCard(challenge)
             }
 
+            MorningWarmupCard(state.morningWarmup, onReroll)
+
             if (mobilityWorkout != null) {
                 MobilityWorkoutCard(
                     workout = mobilityWorkout,
@@ -194,6 +234,8 @@ private fun TodayContent(
                     description = "Nie udało się wczytać bieżącej sesji mobilności. Odśwież ekran."
                 )
             }
+
+            FootRoutineCard()
 
             if (strengthWorkout != null) {
                 StrengthWorkoutCard(
@@ -227,6 +269,132 @@ private fun TodayContent(
                     .align(Alignment.BottomCenter)
                     .padding(16.dp)
             )
+        }
+    }
+}
+
+private const val REVANCED_PACKAGE = "app.revanced.android.youtube"
+
+@Composable
+private fun MorningWarmupCard(warmup: MorningWarmup?, onReroll: () -> Unit) {
+    val context = LocalContext.current
+    if (warmup == null) return
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "ROZRUSZNIK PORANNY • ${if (warmup.isLocal) "z telefonu" else "YouTube"}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = warmup.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Button(
+                onClick = {
+                    if (warmup.isLocal) {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW).apply {
+                                setDataAndType(Uri.parse(warmup.videoUri), "video/*")
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                        )
+                    } else {
+                        val view = Intent(Intent.ACTION_VIEW, Uri.parse(warmup.videoUri))
+                        // Najpierw YouTube ReVanced (bez reklam); gdy go brak, domyślna aplikacja.
+                        try {
+                            context.startActivity(Intent(view).setPackage(REVANCED_PACKAGE))
+                        } catch (_: ActivityNotFoundException) {
+                            context.startActivity(view)
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("▶  Odtwórz poranny rozruch")
+            }
+            TextButton(onClick = onReroll, modifier = Modifier.fillMaxWidth()) {
+                Text("🎲  Losuj inny film")
+            }
+        }
+    }
+}
+
+@Composable
+private fun FootRoutineCard() {
+    var expanded by rememberSaveable { mutableStateOf(true) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Ćwiczenia stóp",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Płaskostopie • 10–12 min • cel: 4× w tygodniu • lekki priorytet lewej stopy",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                TextButton(onClick = { expanded = !expanded }) {
+                    Text(if (expanded) "Zwiń" else "Pokaż")
+                }
+            }
+
+            AnimatedVisibility(visible = expanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    FOOT_ROUTINE.forEachIndexed { index, exercise ->
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = "${index + 1}. ${exercise.title}",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = exercise.dosage,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = exercise.instruction,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                    Text(
+                        text = "Jeśli pojawi się ból lub obrzęk po wewnętrznej stronie lewej kostki albo łuku, przerwij i skonsultuj stopę z fizjoterapeutą.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
         }
     }
 }

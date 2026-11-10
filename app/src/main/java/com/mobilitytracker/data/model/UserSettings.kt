@@ -26,4 +26,7 @@ object SettingsKeys {
     const val STRENGTH_ANCHOR_DATE = "strength_anchor_date"
     const val STRENGTH_SESSIONS_AT_ANCHOR = "strength_sessions_at_anchor"
     const val THEME_MODE = "theme_mode"
+    const val MORNING_WARMUP_DATE = "morning_warmup_date"
+    const val MORNING_WARMUP_FILE = "morning_warmup_file"
+    const val MORNING_WARMUP_HISTORY = "morning_warmup_history"
 }

@@ -23,6 +23,7 @@ class ReminderReceiver : BroadcastReceiver() {
         const val ACTION_MARK_DONE = "com.mobilitytracker.ACTION_MARK_DONE"
         const val EXTRA_CYCLE = "extra_cycle"
         const val EXTRA_VIDEO_ORDER = "extra_video_order"
+        const val EXTRA_REMINDER_SLOT = "extra_reminder_slot"
         const val REQUEST_CODE = 2001
     }
 
@@ -34,9 +35,10 @@ class ReminderReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         when (intent.action) {
             ACTION_REMINDER -> {
+                val reminderSlot = intent.getIntExtra(EXTRA_REMINDER_SLOT, 0)
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        handleReminder(context)
+                        handleReminder(context, reminderSlot)
                     } finally {
                         pendingResult.finish()
                     }
@@ -62,8 +64,12 @@ class ReminderReceiver : BroadcastReceiver() {
         }
     }
 
-    private suspend fun handleReminder(context: Context) {
+    private suspend fun handleReminder(context: Context, reminderSlot: Int) {
         NotificationHelper.createChannel(context)
+
+        val (enabled, hour, minute) = workoutRepository.getReminderSettings()
+        if (!enabled) return
+        alarmScheduler.scheduleDaily(hour, minute)
 
         val startDate = workoutRepository.getProgramStartDate() ?: return
         val today = LocalDate.now()
@@ -74,9 +80,9 @@ class ReminderReceiver : BroadcastReceiver() {
 
         if (mobilityReminder != null || strengthReminder != null) {
             val title = when {
-                mobilityReminder != null && strengthReminder != null -> "Czas na trening!"
-                mobilityReminder != null -> "Czas na mobilność!"
-                else -> "Czas na siłownię!"
+                mobilityReminder != null && strengthReminder != null -> "Najpierw mobilność, potem siła"
+                mobilityReminder != null -> "Nie odkładaj mobilności"
+                else -> "Nie odkładaj treningu siłowego"
             }
             val workoutTitle = listOfNotNull(
                 mobilityReminder?.title,
@@ -88,13 +94,9 @@ class ReminderReceiver : BroadcastReceiver() {
                 title = title,
                 workoutTitle = workoutTitle,
                 cycleNumber = mobilityReminder?.cycleNumber,
-                videoOrder = mobilityReminder?.videoOrder
+                videoOrder = mobilityReminder?.videoOrder,
+                reminderSlot = reminderSlot
             )
-        }
-
-        val (enabled, hour, minute) = workoutRepository.getReminderSettings()
-        if (enabled) {
-            alarmScheduler.scheduleDaily(hour, minute)
         }
     }
 
@@ -107,7 +109,7 @@ class ReminderReceiver : BroadcastReceiver() {
 
         val definition = WORKOUT_PLAN.find { it.order == videoOrder } ?: return null
         return MobilityReminder(
-            title = "Mobilność ${challenge.completedSessions + 1}/84: ${definition.title}",
+            title = "Sesja ${challenge.completedSessions + 1}/84: ${definition.title} • seria ${challenge.currentStreak} dni",
             cycleNumber = cycleNumber,
             videoOrder = videoOrder
         )

@@ -18,12 +18,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +54,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.mobilitytracker.data.model.STRENGTH_WORKOUT_PLAN
 import com.mobilitytracker.data.model.WARMUP_ROUTINE
 import com.mobilitytracker.data.model.StrengthWorkoutDefinition
+import com.mobilitytracker.notification.REMINDER_INTERVAL_HOURS
 import java.time.DayOfWeek
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -154,7 +157,11 @@ fun SettingsScreen(
 
         StrengthPlansPreviewCard()
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
                 Row(
@@ -164,12 +171,12 @@ fun SettingsScreen(
                 ) {
                     Column {
                         Text(
-                            text = "Codzienne przypomnienie",
+                            text = "Częstsze przypomnienia o mobilności",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = "Powiadomienie o ${state.reminderHour}:${state.reminderMinute.toString().padStart(2, '0')}",
+                            text = "Pierwsze o ${state.reminderHour}:${state.reminderMinute.toString().padStart(2, '0')}, potem co $REMINDER_INTERVAL_HOURS godziny",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -258,7 +265,11 @@ fun SettingsScreen(
             }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     text = "12-tygodniowe wyzwanie",
@@ -274,12 +285,16 @@ fun SettingsScreen(
                     onClick = { showResetDialog = true },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Rozpocznij wyzwanie od nowa")
+                    Text("Resetuj serię mobilności")
                 }
             }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     text = "Kopia zapasowa",
@@ -338,7 +353,7 @@ fun SettingsScreen(
     if (showResetDialog) {
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
-            title = { Text("Rozpocząć wyzwanie od nowa?") },
+            title = { Text("Resetować serię mobilności?") },
             text = {
                 Text("Postęp mobilności zostanie wyzerowany i dziś pojawi się pierwsza z 84 sesji. Dane siłowe zostaną zachowane.")
             },
@@ -347,7 +362,7 @@ fun SettingsScreen(
                     viewModel.resetFlow()
                     showResetDialog = false
                 }) {
-                    Text("Rozpocznij od nowa")
+                    Text("Resetuj serię")
                 }
             },
             dismissButton = {
@@ -367,7 +382,11 @@ private fun TrainingDaysCard(
     strengthAssignments: Map<DayOfWeek, Int> = emptyMap(),
     onToggle: (DayOfWeek) -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -439,7 +458,11 @@ private fun DayToggleButton(
 
 @Composable
 private fun StrengthPlansPreviewCard() {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -468,7 +491,11 @@ private fun StrengthPlansPreviewCard() {
 
 @Composable
 private fun StrengthPlanPreview(workout: StrengthWorkoutDefinition) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
         Column(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)

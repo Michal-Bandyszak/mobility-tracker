@@ -97,6 +97,8 @@ The training videos are intentionally not committed to the repository. Add the 1
 
 The expected names are defined in [`WorkoutPlan.kt`](app/src/main/java/com/mobilitytracker/data/model/WorkoutPlan.kt). The app can still show the training plan when a video is missing; only playback is unavailable for that session.
 
+The optional daily morning warmup videos should be placed in `Movies/MobilityTracker/PorannyRozruch/`. The app picks one available video for the day, keeps that choice stable, and avoids the most recently used videos. Filenames are unrestricted.
+
 ## Product flow
 
 1. Choose the programme start date on first launch.

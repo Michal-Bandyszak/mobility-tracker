@@ -12,7 +12,7 @@ import com.mobilitytracker.R
 object NotificationHelper {
 
     private const val CHANNEL_ID = "reminder_channel"
-    private const val NOTIFICATION_ID = 1001
+    private const val BASE_NOTIFICATION_ID = 1001
 
     fun createChannel(context: Context) {
         val channel = NotificationChannel(
@@ -31,8 +31,10 @@ object NotificationHelper {
         title: String,
         workoutTitle: String,
         cycleNumber: Int? = null,
-        videoOrder: Int? = null
+        videoOrder: Int? = null,
+        reminderSlot: Int = 0
     ) {
+        val slot = reminderSlot.coerceIn(0, REMINDER_SLOT_COUNT - 1)
         val openIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
@@ -45,7 +47,12 @@ object NotificationHelper {
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(title)
             .setContentText(workoutTitle)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(workoutTitle))
             .setContentIntent(openPending)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setOnlyAlertOnce(false)
             .setAutoCancel(true)
 
         if (cycleNumber != null && videoOrder != null) {
@@ -55,18 +62,20 @@ object NotificationHelper {
                 putExtra(ReminderReceiver.EXTRA_VIDEO_ORDER, videoOrder)
             }
             val markDonePending = PendingIntent.getBroadcast(
-                context, 1, markDoneIntent,
+                context, 3001 + slot, markDoneIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             builder.addAction(0, "Oznacz jako zrobione", markDonePending)
         }
 
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(NOTIFICATION_ID, builder.build())
+        manager.notify(BASE_NOTIFICATION_ID + slot, builder.build())
     }
 
     fun cancel(context: Context) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.cancel(NOTIFICATION_ID)
+        repeat(REMINDER_SLOT_COUNT) { slot ->
+            manager.cancel(BASE_NOTIFICATION_ID + slot)
+        }
     }
 }

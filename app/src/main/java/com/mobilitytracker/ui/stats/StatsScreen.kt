@@ -23,6 +23,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,6 +31,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,6 +61,8 @@ import com.mobilitytracker.domain.model.StrengthStatsOverview
 import com.mobilitytracker.domain.model.StrengthTrend
 import com.mobilitytracker.ui.components.ExpressiveHeader
 import com.mobilitytracker.ui.components.ExpressiveScreen
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
@@ -91,8 +95,6 @@ fun StatsScreen(
             }
 
             val mobilityStats = stats!!
-            ChallengeJourneyCard(mobilityStats.challenge)
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -113,8 +115,6 @@ fun StatsScreen(
                 )
             }
 
-            ProgressRingCard(stats = mobilityStats)
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -131,6 +131,10 @@ fun StatsScreen(
                 )
             }
 
+            ProgressRingCard(stats = mobilityStats)
+
+            ChallengeJourneyCard(mobilityStats.challenge)
+
             StatsHeroCard(strengthStats = strengthStats)
             StrengthStatsSection(strengthStats = strengthStats)
 
@@ -144,6 +148,7 @@ fun StatsScreen(
 
 @Composable
 private fun ChallengeJourneyCard(challenge: MobilityChallengeState) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -154,18 +159,34 @@ private fun ChallengeJourneyCard(challenge: MobilityChallengeState) {
             modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(
-                text = if (challenge.isComplete) "WYZWANIE UKOŃCZONE" else "12 TYGODNI MOBILNOŚCI",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "${challenge.completedSessions}/$MOBILITY_CHALLENGE_SESSIONS sesji • film czeka, dopóki go nie wykonasz",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (challenge.isComplete) "WYZWANIE UKOŃCZONE" else "12 TYGODNI MOBILNOŚCI",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "${challenge.completedSessions}/$MOBILITY_CHALLENGE_SESSIONS sesji",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                TextButton(onClick = { expanded = !expanded }) {
+                    Text(if (expanded) "Zwiń" else "Pokaż siatkę")
+                }
+            }
+            LinearProgressIndicator(
+                progress = { challenge.completedSessions.toFloat() / MOBILITY_CHALLENGE_SESSIONS },
+                modifier = Modifier.fillMaxWidth(),
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
             )
 
-            repeat(12) { weekIndex ->
+            if (expanded) repeat(12) { weekIndex ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -222,7 +243,7 @@ private fun StatsHeroCard(strengthStats: StrengthStats) {
     ) {
         Column(
             modifier = Modifier.padding(22.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
                 text = "SIŁA I MOBILNOŚĆ",
@@ -232,56 +253,15 @@ private fun StatsHeroCard(strengthStats: StrengthStats) {
             )
             Text(
                 text = strengthStats.notableProgress?.heroTitle() ?: "Zapisuj treningi, nie szum.",
-                style = MaterialTheme.typography.headlineLarge,
+                style = MaterialTheme.typography.headlineSmall,
                 color = contentColor,
-                fontWeight = FontWeight.Black
+                fontWeight = FontWeight.Bold
             )
             Text(
                 text = strengthStats.notableProgress?.heroSubtitle()
                     ?: "Po pierwszych sesjach pokażę ostatni trening, kompletność serii i realny progres ćwiczeń.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = contentColor.copy(alpha = 0.78f)
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                HeroMetric(
-                    label = "Ten miesiąc",
-                    value = "${strengthStats.overview.sessionsThisMonth} sesje",
-                    modifier = Modifier.weight(1f)
-                )
-                HeroMetric(
-                    label = "Ostatnio",
-                    value = strengthStats.overview.latestSessionPlanDay?.let { "T$it" } ?: "brak",
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun HeroMetric(label: String, value: String, modifier: Modifier = Modifier) {
-    val contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(contentColor.copy(alpha = 0.10f))
-            .padding(12.dp)
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = contentColor.copy(alpha = 0.72f)
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleLarge,
-                color = contentColor,
-                fontWeight = FontWeight.Bold
             )
         }
     }
@@ -324,7 +304,7 @@ private fun StrengthStatsSection(strengthStats: StrengthStats) {
     if (strengthStats.exerciseProgress.isNotEmpty()) {
         SectionHeader(
             title = "Progres ćwiczeń",
-            subtitle = "Ostatni wynik, najlepszy wynik i kierunek zmiany dla danego typu ćwiczenia."
+            subtitle = "Ostatni wynik, trend i najlepszy rezultat."
         )
         strengthStats.exerciseProgress.forEach { progress ->
             ExerciseProgressCard(progress = progress)
@@ -336,7 +316,7 @@ private fun StrengthStatsSection(strengthStats: StrengthStats) {
             title = "Ostatnie sesje",
             subtitle = "Czytelny zapis ostatnich treningów A/B."
         )
-        strengthStats.recentSessions.forEach { session ->
+        strengthStats.recentSessions.take(3).forEach { session ->
             SessionSummaryCard(session = session)
         }
     }
@@ -447,27 +427,31 @@ private fun ExerciseProgressCard(progress: StrengthExerciseProgress) {
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 PerformanceBlock(
                     label = "Ostatnio",
                     performance = progress.latest,
                     trackingType = progress.trackingType,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1.3f)
                 )
-                PerformanceBlock(
-                    label = "Najlepiej",
-                    performance = progress.best,
-                    trackingType = progress.trackingType,
-                    modifier = Modifier.weight(1f)
-                )
+                if (progress.recentPerformances.size > 1) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        Sparkline(
+                            values = progress.recentPerformances
+                                .reversed()
+                                .map { it.scoreFor(progress.trackingType) }
+                        )
+                    }
+                }
             }
 
-            if (progress.recentPerformances.size > 1) {
-                Sparkline(
-                    values = progress.recentPerformances
-                        .reversed()
-                        .map { it.scoreFor(progress.trackingType) }
+            if (progress.best != null && progress.best != progress.latest) {
+                Text(
+                    text = "Najlepiej: ${progress.best.formatFor(progress.trackingType)} · ${shortDate(progress.best.date)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -502,7 +486,7 @@ private fun PerformanceBlock(
             )
             if (performance != null) {
                 Text(
-                    text = "T${performance.planDay} · ${performance.date}",
+                    text = "T${performance.planDay} · ${shortDate(performance.date)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -530,7 +514,7 @@ private fun SessionSummaryCard(session: StrengthSessionSummary) {
             ) {
                 Column {
                     Text(
-                        text = "T${session.planDay} · ${session.date}",
+                        text = "T${session.planDay} · ${shortDate(session.date)}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -714,7 +698,7 @@ private fun ProgressRingCard(stats: CycleStats) {
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
-            modifier = Modifier.padding(24.dp),
+            modifier = Modifier.fillMaxWidth().padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             var animationPlayed by remember { mutableStateOf(false) }
@@ -834,7 +818,7 @@ private fun StrengthPerformance.formatFor(trackingType: TrackingType): String =
         TrackingType.WEIGHT_AND_REPS -> {
             val weight = weightKg?.let { "${formatNumber(it)} kg" }
             val repetitions = reps?.let { "$it powt." }
-            listOfNotNull(weight, repetitions).joinToString(" x ").ifBlank { "brak" }
+            listOfNotNull(weight, repetitions).joinToString(" × ").ifBlank { "brak" }
         }
         TrackingType.BAND_AND_REPS -> {
             val band = bandColor?.let { "guma $it" }
@@ -858,7 +842,7 @@ private fun StrengthProgressHighlight.heroSubtitle(): String {
     val latestValue = latest.formatFor(trackingType)
     val previousValue = previous?.formatFor(trackingType)
     return if (previousValue != null) {
-        "Ostatnio $latestValue, poprzednio $previousValue. T${latest.planDay} · ${latest.date}"
+        "Ostatnio $latestValue, poprzednio $previousValue · T${latest.planDay} · ${shortDate(latest.date)}"
     } else {
         "Ostatnio $latestValue. Zapisz kolejną sesję, a pokażę kierunek zmiany."
     }
@@ -892,6 +876,9 @@ private fun trackingLabel(type: TrackingType): String =
         TrackingType.TIME_ONLY -> "czas"
         TrackingType.NONE -> "bez progresu"
     }
+
+private fun shortDate(iso: String): String =
+    runCatching { LocalDate.parse(iso).format(DateTimeFormatter.ofPattern("d.MM")) }.getOrDefault(iso)
 
 private fun formatNumber(value: Double): String =
     if (value % 1.0 == 0.0) value.toInt().toString() else String.format(Locale.US, "%.1f", value)

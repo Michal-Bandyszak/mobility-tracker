@@ -147,6 +147,7 @@ class SettingsViewModel @Inject constructor(
     fun resetFlow() {
         viewModelScope.launch {
             resetProgramFlow()
+            NotificationHelper.cancel(context)
         }
     }
 
