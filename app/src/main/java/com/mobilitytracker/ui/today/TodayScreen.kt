@@ -961,7 +961,7 @@ private fun OnboardingContent(onStart: (LocalDate) -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Mobility Tracker",
+            text = "Mobilne ciało",
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.fillMaxWidth()
