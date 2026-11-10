@@ -94,7 +94,7 @@ class StrengthWorkoutPlanTest {
     }
 
     @Test
-    fun `warmup includes foot work for flat foot`() {
+    fun `warmup includes foot work`() {
         val ids = WARMUP_ROUTINE.map { it.id }
 
         assertTrue(ids.contains("warmup_short_foot"))

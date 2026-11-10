@@ -89,7 +89,7 @@ val STRENGTH_RESOURCE_LINKS = listOf(
 val WARMUP_ROUTINE = listOf(
     WarmupStep("warmup_90_90", "90/90", "8 powtórzeń na stronę"),
     WarmupStep("warmup_bodyweight_hip_thrust", "Unoszenie bioder obunóż bez obciążenia", "10 powtórzeń"),
-    WarmupStep("warmup_short_foot", "Krótka stopa", "10 × 5 s, głównie lewa stopa", "Skróć stopę bez podwijania palców."),
+    WarmupStep("warmup_short_foot", "Krótka stopa", "10 × 5 s na stronę", "Skróć stopę bez podwijania palców."),
     WarmupStep("warmup_single_leg_calf_raise", "Wspięcia na palce jednonóż", "12–15 na stronę"),
     WarmupStep("warmup_cat_cow", "Koci grzbiet", "8 powtórzeń"),
     WarmupStep("warmup_up_down_dog", "Pies z głową w górę / w dół", "6 płynnych przejść"),
