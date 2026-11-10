@@ -1,28 +1,26 @@
 package com.mobilitytracker.ui.calendar
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -30,21 +28,27 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import android.content.Intent
-import android.net.Uri
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mobilitytracker.data.model.CYCLE_LENGTH
 import com.mobilitytracker.domain.model.DayWorkout
+import com.mobilitytracker.ui.components.AppCard
+import com.mobilitytracker.ui.components.CardHeader
+import com.mobilitytracker.ui.components.DoneMark
 import com.mobilitytracker.ui.components.ExpressiveHeader
 import com.mobilitytracker.ui.components.ExpressiveScreen
+import com.mobilitytracker.ui.components.planName
+import com.mobilitytracker.ui.components.setsLabel
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun CalendarScreen(
@@ -53,250 +57,196 @@ fun CalendarScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    if (state.isLoading) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        return
-    }
-
-    if (state.workouts.isEmpty()) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                text = "Uruchom program na ekranie Dzisiaj",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        return
-    }
-
     ExpressiveScreen {
+        if (state.isLoading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+            return@ExpressiveScreen
+        }
+
         LazyColumn(
             state = listState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 18.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                ExpressiveHeader(
-                    eyebrow = "Kalendarz",
-                    title = "Historia ruchu",
-                    subtitle = "Cykle mobilności w trybie tylko do odczytu i faktyczne dni treningów siłowych."
-                )
-            }
+            item { ExpressiveHeader(title = "Kalendarz") }
 
-            // Nawigacja między cyklami
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = { viewModel.previousCycle() },
-                        enabled = state.currentCycle > 1
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Poprzedni cykl")
-                    }
-
-                    Text(
-                        text = "CYKL ${state.currentCycle}",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    IconButton(
-                        onClick = { viewModel.nextCycle() },
-                        enabled = state.currentCycle < state.maxCycle
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Następny cykl")
+            if (state.workouts.isEmpty()) {
+                item {
+                    AppCard {
+                        CardHeader(title = "Brak programu", meta = "Zacznij program na ekranie Dzisiaj.")
                     }
                 }
+                return@LazyColumn
             }
 
-            // Siatka dni 1-17
+            val isTodayCycle = state.currentCycle == state.todayCycle
             item {
-                CycleGrid(
+                CycleCard(
+                    cycleNumber = state.currentCycle,
                     workouts = state.workouts,
-                    todayCycle = state.todayCycle,
-                    todayVideoOrder = state.todayVideoOrder,
-                    currentCycle = state.currentCycle
+                    todayVideoOrder = state.todayVideoOrder.takeIf { isTodayCycle },
+                    canGoBack = state.currentCycle > 1,
+                    canGoForward = state.currentCycle < state.maxCycle,
+                    onPrevious = viewModel::previousCycle,
+                    onNext = viewModel::nextCycle
                 )
             }
-
+            item { StrengthHistoryCard(entries = state.strengthHistory) }
             item {
-                StrengthHistoryCard(entries = state.strengthHistory)
-            }
-
-            item {
-                HorizontalDivider()
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "Lista filmów:",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            items(state.workouts) { workout ->
-                WorkoutListItem(
-                    workout = workout,
-                    isToday = state.currentCycle == state.todayCycle && workout.videoOrder == state.todayVideoOrder,
-                    onPlay = workout.videoUri
+                WorkoutListCard(
+                    workouts = state.workouts,
+                    todayVideoOrder = state.todayVideoOrder.takeIf { isTodayCycle }
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun CycleCard(
+    cycleNumber: Int,
+    workouts: List<DayWorkout>,
+    todayVideoOrder: Int?,
+    canGoBack: Boolean,
+    canGoForward: Boolean,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit
+) {
+    AppCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onPrevious, enabled = canGoBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Poprzedni cykl")
+            }
+            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(text = "Cykl $cycleNumber", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = "${workouts.count { it.isCompleted }} z $CYCLE_LENGTH filmów",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(onClick = onNext, enabled = canGoForward) {
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Następny cykl")
+            }
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            workouts.chunked(7).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    row.forEach { workout ->
+                        DayCell(
+                            number = workout.videoOrder,
+                            isCompleted = workout.isCompleted,
+                            isToday = workout.videoOrder == todayVideoOrder,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    repeat(7 - row.size) { Spacer(Modifier.weight(1f)) }
+                }
+            }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            LegendItem("zrobione", fill = MaterialTheme.colorScheme.primary)
+            LegendItem("dziś", outline = MaterialTheme.colorScheme.primary)
+            LegendItem("czeka", fill = MaterialTheme.colorScheme.surfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun DayCell(number: Int, isCompleted: Boolean, isToday: Boolean, modifier: Modifier = Modifier) {
+    val base = modifier
+        .aspectRatio(1f)
+        .clip(CircleShape)
+    Box(
+        modifier = when {
+            isCompleted -> base.background(MaterialTheme.colorScheme.primary)
+            isToday -> base.border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+            else -> base.background(MaterialTheme.colorScheme.surfaceVariant)
+        },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = number.toString(),
+            style = MaterialTheme.typography.labelLarge,
+            color = when {
+                isCompleted -> MaterialTheme.colorScheme.onPrimary
+                isToday -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.onSurface
+            },
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun LegendItem(label: String, fill: Color? = null, outline: Color? = null) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        val dot = Modifier
+            .size(12.dp)
+            .clip(CircleShape)
+        Box(
+            modifier = when {
+                fill != null -> dot.background(fill)
+                outline != null -> dot.border(2.dp, outline, CircleShape)
+                else -> dot
+            }
+        )
+        Text(text = label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 private fun StrengthHistoryCard(entries: List<StrengthCalendarEntry>) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+    val dateFormat = DateTimeFormatter.ofPattern("d MMMM", Locale.forLanguageTag("pl"))
+
+    AppCard {
+        CardHeader(title = "Historia siłowni", meta = "Dni z zapisanymi seriami")
+        if (entries.isEmpty()) {
             Text(
-                text = "Historia siłowni",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Prawdziwe dni wykonania treningu z zapisanych serii.",
-                style = MaterialTheme.typography.bodySmall,
+                text = "Brak zapisanych treningów siłowych.",
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (entries.isEmpty()) {
-                Text(
-                    text = "Brak zapisanych treningów siłowych.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                return@Column
-            }
-            entries.take(12).forEach { entry ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            modifier = Modifier.weight(1f),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer)
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "T${entry.planDay}",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            Column {
-                                Text(
-                                    text = entry.dayLabel.replaceFirstChar { it.uppercase() },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = entry.date.toString(),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        Text(
-                            text = "${entry.loggedSets} serii",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
-                    }
-                }
-            }
+            return@AppCard
         }
-    }
-}
-
-@Composable
-private fun CycleGrid(
-    workouts: List<DayWorkout>,
-    todayCycle: Int,
-    todayVideoOrder: Int,
-    currentCycle: Int
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            // 3 rzędy: 7 + 7 + 3
-            val rows = listOf(workouts.take(7), workouts.drop(7).take(7), workouts.drop(14))
-            rows.forEach { row ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    row.forEach { workout ->
-                        val isToday = currentCycle == todayCycle && workout.videoOrder == todayVideoOrder
-                        DayCell(
-                            number = workout.videoOrder,
-                            isCompleted = workout.isCompleted,
-                            isToday = isToday
-                        )
-                    }
-                    // Pad last row
-                    repeat(7 - row.size) {
-                        Box(modifier = Modifier.size(36.dp))
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-            }
-
-            // Legenda
+        entries.take(12).forEachIndexed { index, entry ->
+            if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = planName(entry.planDay),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = entry.dayLabel.replaceFirstChar { it.uppercase() },
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = entry.date.format(dateFormat),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Text(
-                    "✓ zrobione",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.tertiary
-                )
-                Text(
-                    "● dzisiaj",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    "○ brak",
-                    style = MaterialTheme.typography.labelSmall,
+                    text = setsLabel(entry.loggedSets),
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -305,99 +255,50 @@ private fun CycleGrid(
 }
 
 @Composable
-private fun DayCell(number: Int, isCompleted: Boolean, isToday: Boolean) {
-    val bgColor = when {
-        isCompleted -> MaterialTheme.colorScheme.tertiaryContainer
-        isToday -> MaterialTheme.colorScheme.primaryContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant
-    }
-    val textColor = when {
-        isCompleted -> MaterialTheme.colorScheme.onTertiaryContainer
-        isToday -> MaterialTheme.colorScheme.onPrimaryContainer
-        else -> MaterialTheme.colorScheme.onSurface
-    }
-
-    Box(
-        modifier = Modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .background(bgColor),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = number.toString(),
-            style = MaterialTheme.typography.labelSmall,
-            color = textColor,
-            textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-@Composable
-private fun WorkoutListItem(
-    workout: DayWorkout,
-    isToday: Boolean,
-    onPlay: String?
-) {
+private fun WorkoutListCard(workouts: List<DayWorkout>, todayVideoOrder: Int?) {
     val context = LocalContext.current
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = when {
-                isToday -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f)
-                else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
-            }
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "${workout.videoOrder}.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(end = 12.dp)
-            )
-            Column(modifier = Modifier.weight(1f)) {
+    AppCard {
+        CardHeader(title = "Filmy w cyklu")
+        workouts.forEachIndexed { index, workout ->
+            if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            val isToday = workout.videoOrder == todayVideoOrder
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Text(
-                    text = workout.definition.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
+                    text = "${workout.videoOrder}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.width(20.dp)
                 )
-                if (isToday) {
-                    Text(
-                        text = "Dzisiaj",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-            if (onPlay != null) {
-                IconButton(onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(Uri.parse(onPlay), "video/*")
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = workout.definition.title, style = MaterialTheme.typography.bodyLarge)
+                    if (isToday) {
+                        Text(
+                            text = "Dzisiaj",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
-                    context.startActivity(intent)
-                }) {
-                    Icon(
-                        Icons.Default.PlayArrow,
-                        contentDescription = "Odtwórz",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
                 }
+                val videoUri = workout.videoUri
+                if (videoUri != null) {
+                    IconButton(onClick = {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW).apply { setDataAndType(Uri.parse(videoUri), "video/*") }
+                        )
+                    }) {
+                        Icon(
+                            Icons.Filled.PlayArrow,
+                            contentDescription = "Odtwórz ${workout.definition.title}",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                DoneMark(done = workout.isCompleted, active = isToday)
             }
-            Text(
-                text = if (workout.isCompleted) "✓" else "○",
-                style = MaterialTheme.typography.titleLarge,
-                color = if (workout.isCompleted) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline
-            )
         }
     }
 }

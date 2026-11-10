@@ -2,11 +2,10 @@ package com.mobilitytracker.ui.today
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import com.mobilitytracker.data.model.TrackingType
-import com.mobilitytracker.data.model.WARMUP_SET_NUMBER
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,23 +15,37 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -44,36 +57,49 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mobilitytracker.data.model.CYCLE_LENGTH
 import com.mobilitytracker.data.model.STRENGTH_RESOURCE_LINKS
 import com.mobilitytracker.data.model.StrengthExerciseDefinition
 import com.mobilitytracker.data.model.StrengthSetLog
+import com.mobilitytracker.data.model.TrackingType
 import com.mobilitytracker.data.model.WARMUP_ROUTINE
+import com.mobilitytracker.data.model.WARMUP_SET_NUMBER
 import com.mobilitytracker.domain.model.DayWorkout
 import com.mobilitytracker.domain.model.MOBILITY_CHALLENGE_SESSIONS
 import com.mobilitytracker.domain.model.MobilityChallengeState
 import com.mobilitytracker.domain.model.MorningWarmup
 import com.mobilitytracker.domain.model.ScheduledStrengthWorkout
+import com.mobilitytracker.ui.components.AppCard
+import com.mobilitytracker.ui.components.CardHeader
+import com.mobilitytracker.ui.components.DoneMark
+import com.mobilitytracker.ui.components.ExpandChevron
 import com.mobilitytracker.ui.components.ExpressiveHeader
 import com.mobilitytracker.ui.components.ExpressiveScreen
-import com.mobilitytracker.ui.components.StatusPill
+import com.mobilitytracker.ui.components.InsetBlock
+import com.mobilitytracker.ui.components.ScreenColumn
+import com.mobilitytracker.ui.components.StatValue
+import com.mobilitytracker.ui.components.ThinProgress
+import com.mobilitytracker.ui.components.daysLabel
+import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 private data class FootExercise(
     val title: String,
@@ -182,13 +208,6 @@ private fun TodayContent(
         strengthWorkout != null -> "Dzisiaj siła"
         else -> "Dzisiaj regeneracja"
     }
-    val subtitle = when {
-        challenge?.completedToday == true -> "Dzisiejsza sesja jest zaliczona. Jutro wrócisz do kolejnego filmu."
-        mobilityWorkout != null && strengthWorkout != null -> "Najpierw rozruszaj ciało, potem przejdź do planu siłowego."
-        mobilityWorkout != null -> "Jeden konkretny blok ruchu wystarczy, żeby utrzymać rytm."
-        strengthWorkout != null -> "Masz aktywny trening siłowy i możesz zmienić A/B jednym tapnięciem."
-        else -> "Dzień bez planu. Możesz odpocząć albo odpalić siłownię ręcznie."
-    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(state.message) {
@@ -200,67 +219,43 @@ private fun TodayContent(
 
     ExpressiveScreen {
         Box(Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 18.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-            ExpressiveHeader(
-                eyebrow = LocalDate.now().toString(),
-                title = title,
-                subtitle = subtitle
-            )
+            ScreenColumn(scrollState) {
+                ExpressiveHeader(eyebrow = todayLabel(), title = title)
 
-            if (challenge != null) {
-                MobilityChallengeCard(challenge)
-            }
-
-            MorningWarmupCard(state.morningWarmup, onReroll)
-
-            if (mobilityWorkout != null) {
-                MobilityWorkoutCard(
-                    workout = mobilityWorkout,
-                    onToggle = onToggle,
-                    onRefresh = onRefresh
-                )
-                if (challenge?.completedToday == true && state.nextMobilityWorkout != null) {
-                    NextMobilityCard(state.nextMobilityWorkout)
+                if (challenge != null) {
+                    MobilityChallengeCard(challenge)
                 }
-            } else {
-                NoTrainingCard(
-                    title = "Mobilność",
-                    description = "Nie udało się wczytać bieżącej sesji mobilności. Odśwież ekran."
-                )
-            }
 
-            FootRoutineCard()
+                MorningWarmupCard(state.morningWarmup, onReroll)
 
-            if (strengthWorkout != null) {
-                StrengthWorkoutCard(
-                    workout = strengthWorkout,
-                    logs = state.strengthLogs,
-                    onSaveSet = onSaveStrengthSet,
-                    onChooseStrengthWorkoutToday = onChooseStrengthWorkoutToday,
-                    onChangeExercise = onChangeStrengthExerciseToday,
-                    onRestoreExercise = onRestoreStrengthExerciseToday
-                )
-            } else {
-                StrengthTodayPickerCard(
-                    title = "Siłownia",
-                    description = "Dziś nie ma zaplanowanego treningu siłowego, ale możesz zrobić go jednorazowo bez zmiany tygodniowego planu.",
-                    selectedPlanDay = null,
-                    onChooseStrengthWorkoutToday = onChooseStrengthWorkoutToday
-                )
-            }
+                if (mobilityWorkout != null) {
+                    MobilityWorkoutCard(
+                        workout = mobilityWorkout,
+                        next = state.nextMobilityWorkout.takeIf { challenge?.completedToday == true },
+                        onToggle = onToggle,
+                        onRefresh = onRefresh
+                    )
+                } else {
+                    NoTrainingCard(
+                        title = "Mobilność",
+                        description = "Nie udało się wczytać bieżącej sesji. Odśwież ekran."
+                    )
+                }
 
-            if (mobilityWorkout == null && strengthWorkout == null) {
-                NoTrainingCard(
-                    title = "Dzień wolny",
-                    description = "Możesz odpocząć albo zrobić opcjonalne rozciąganie z planu."
-                )
-            }
+                FootRoutineCard()
+
+                if (strengthWorkout != null) {
+                    StrengthWorkoutCard(
+                        workout = strengthWorkout,
+                        logs = state.strengthLogs,
+                        onSaveSet = onSaveStrengthSet,
+                        onChooseStrengthWorkoutToday = onChooseStrengthWorkoutToday,
+                        onChangeExercise = onChangeStrengthExerciseToday,
+                        onRestoreExercise = onRestoreStrengthExerciseToday
+                    )
+                } else {
+                    StrengthTodayPickerCard(onChooseStrengthWorkoutToday = onChooseStrengthWorkoutToday)
+                }
             }
 
             SnackbarHost(
@@ -273,6 +268,11 @@ private fun TodayContent(
     }
 }
 
+private fun todayLabel(): String =
+    LocalDate.now()
+        .format(DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.forLanguageTag("pl")))
+        .replaceFirstChar { it.uppercase() }
+
 private const val REVANCED_PACKAGE = "app.revanced.android.youtube"
 
 @Composable
@@ -280,29 +280,19 @@ private fun MorningWarmupCard(warmup: MorningWarmup?, onReroll: () -> Unit) {
     val context = LocalContext.current
     if (warmup == null) return
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                text = "ROZRUSZNIK PORANNY • ${if (warmup.isLocal) "z telefonu" else "YouTube"}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = warmup.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Button(
+    AppCard {
+        CardHeader(
+            title = "Rozruch poranny",
+            meta = if (warmup.isLocal) "Film z telefonu" else "Losowy film z playlisty"
+        )
+        Text(
+            text = warmup.title,
+            style = MaterialTheme.typography.bodyLarge,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilledTonalButton(
                 onClick = {
                     if (warmup.isLocal) {
                         context.startActivity(
@@ -321,12 +311,14 @@ private fun MorningWarmupCard(warmup: MorningWarmup?, onReroll: () -> Unit) {
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.weight(1f)
             ) {
-                Text("▶  Odtwórz poranny rozruch")
+                ButtonIcon(Icons.Filled.PlayArrow)
+                Text("Odtwórz")
             }
-            TextButton(onClick = onReroll, modifier = Modifier.fillMaxWidth()) {
-                Text("🎲  Losuj inny film")
+            TextButton(onClick = onReroll) {
+                ButtonIcon(Icons.Filled.Shuffle)
+                Text("Losuj inny")
             }
         }
     }
@@ -334,66 +326,46 @@ private fun MorningWarmupCard(warmup: MorningWarmup?, onReroll: () -> Unit) {
 
 @Composable
 private fun FootRoutineCard() {
-    var expanded by rememberSaveable { mutableStateOf(true) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Ćwiczenia stóp",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Płaskostopie • 10–12 min • cel: 4× w tygodniu • lekki priorytet lewej stopy",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                TextButton(onClick = { expanded = !expanded }) {
-                    Text(if (expanded) "Zwiń" else "Pokaż")
-                }
-            }
+    AppCard {
+        CardHeader(
+            title = "Stopy",
+            meta = "Płaskostopie · ${FOOT_ROUTINE.size} ćwiczeń · 10–12 min",
+            onClick = { expanded = !expanded },
+            trailing = { ExpandChevron(expanded) }
+        )
 
-            AnimatedVisibility(visible = expanded) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    FOOT_ROUTINE.forEachIndexed { index, exercise ->
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                text = "${index + 1}. ${exercise.title}",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = exercise.dosage,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = exercise.instruction,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
+        AnimatedVisibility(visible = expanded) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Cel: 4× w tygodniu, lekki priorytet lewej stopy.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                FOOT_ROUTINE.forEachIndexed { index, exercise ->
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "${index + 1}. ${exercise.title}",
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Text(
+                            text = exercise.dosage,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = exercise.instruction,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                    Text(
-                        text = "Jeśli pojawi się ból lub obrzęk po wewnętrznej stronie lewej kostki albo łuku, przerwij i skonsultuj stopę z fizjoterapeutą.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
                 }
+                Text(
+                    text = "Ból lub obrzęk po wewnętrznej stronie lewej kostki albo łuku: przerwij i skonsultuj stopę z fizjoterapeutą.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
         }
     }
@@ -403,213 +375,125 @@ private fun FootRoutineCard() {
 private fun MobilityChallengeCard(challenge: MobilityChallengeState) {
     val title = when {
         challenge.isComplete -> "12 tygodni ukończone"
-        challenge.completedToday -> "Zrobione na dziś • ${challenge.completedSessions}/$MOBILITY_CHALLENGE_SESSIONS"
+        challenge.completedToday -> "Zrobione na dziś"
         else -> "Sesja ${challenge.activeSessionNumber.coerceAtMost(MOBILITY_CHALLENGE_SESSIONS)} z $MOBILITY_CHALLENGE_SESSIONS"
     }
+    val onContainer = MaterialTheme.colorScheme.onPrimaryContainer
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
+    AppCard(containerColor = MaterialTheme.colorScheme.primaryContainer) {
+        Column {
             Text(
-                text = "WYZWANIE MOBILNOŚCI",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                fontWeight = FontWeight.Bold
+                text = "Wyzwanie 12 tygodni",
+                style = MaterialTheme.typography.bodySmall,
+                color = onContainer.copy(alpha = 0.75f)
             )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                fontWeight = FontWeight.Bold
-            )
-            LinearProgressIndicator(
-                progress = { challenge.progress.coerceIn(0f, 1f) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(10.dp),
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.82f),
-                trackColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.16f)
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                StatusPill(
-                    label = "Seria",
-                    value = "${challenge.currentStreak} dni",
-                    modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    containerColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.08f)
-                )
-                StatusPill(
-                    label = "Ten tydzień",
-                    value = "${challenge.completedThisWeek}/7",
-                    modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    containerColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.08f)
-                )
-            }
+            Text(text = title, style = MaterialTheme.typography.titleLarge)
+        }
+        ThinProgress(
+            progress = challenge.progress,
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = onContainer.copy(alpha = 0.12f)
+        )
+        Row {
+            StatValue(value = daysLabel(challenge.currentStreak), label = "seria", modifier = Modifier.weight(1f))
+            StatValue(value = "${challenge.completedThisWeek}/7", label = "ten tydzień", modifier = Modifier.weight(1f))
+            StatValue(value = daysLabel(challenge.longestStreak), label = "rekord serii", modifier = Modifier.weight(1f))
         }
     }
 }
 
 @Composable
-private fun NextMobilityCard(workout: DayWorkout) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f))
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = "JUTRO • FILM ${workout.videoOrder}/$CYCLE_LENGTH",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = workout.definition.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
-
-@Composable
-private fun MobilityWorkoutCard(workout: DayWorkout, onToggle: () -> Unit, onRefresh: () -> Unit) {
+private fun MobilityWorkoutCard(
+    workout: DayWorkout,
+    next: DayWorkout?,
+    onToggle: () -> Unit,
+    onRefresh: () -> Unit
+) {
     val context = LocalContext.current
     var expanded by rememberSaveable(workout.cycleNumber, workout.videoOrder, workout.isCompleted) {
         mutableStateOf(!workout.isCompleted)
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "MOBILNOŚĆ • CYKL ${workout.cycleNumber}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "Film ${workout.videoOrder} / $CYCLE_LENGTH",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+    AppCard {
+        CardHeader(
+            title = "Mobilność",
+            meta = "Cykl ${workout.cycleNumber} · film ${workout.videoOrder} z $CYCLE_LENGTH",
+            onClick = { expanded = !expanded },
+            trailing = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (workout.isCompleted) DoneMark(done = true)
+                    ExpandChevron(expanded)
+                }
             }
-            TextButton(onClick = { expanded = !expanded }) {
-                Text(if (expanded) "Zwiń" else "Rozwiń")
-            }
-        }
+        )
 
         AnimatedVisibility(visible = expanded) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                LinearProgressIndicator(
-                    progress = { workout.videoOrder.toFloat() / CYCLE_LENGTH },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    text = workout.definition.title,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Text(
-                    text = workout.definition.category.replaceFirstChar { it.uppercase() },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                if (workout.definition.durationMinutes > 0) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column {
+                    Text(text = workout.definition.title, style = MaterialTheme.typography.titleLarge)
                     Text(
-                        text = "${workout.definition.durationMinutes} min",
-                        style = MaterialTheme.typography.bodyMedium
+                        text = listOfNotNull(
+                            workout.definition.category.replaceFirstChar { it.uppercase() },
+                            workout.definition.durationMinutes.takeIf { it > 0 }?.let { "$it min" }
+                        ).joinToString(" · "),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
-
-                HorizontalDivider()
-
-                AnimatedVisibility(visible = workout.videoUri != null) {
-                    Button(
-                        onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW).apply {
-                                setDataAndType(Uri.parse(workout.videoUri), "video/*")
-                            }
-                            context.startActivity(intent)
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("▶  Odtwórz filmik")
-                    }
                 }
 
                 if (workout.videoUri == null) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Filmik nie znaleziony na urządzeniu",
+                            text = "Brak pliku „${workout.definition.videoFileName}” w telefonie.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
                         )
-                        Text(
-                            text = "Oczekiwana nazwa pliku: \"${workout.definition.videoFileName}\"",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        OutlinedButton(
-                            onClick = { onRefresh() },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Odśwież")
-                        }
+                        TextButton(onClick = onRefresh) { Text("Odśwież") }
                     }
                 }
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = workout.isCompleted,
-                        onCheckedChange = { onToggle() }
-                    )
-                    Text(
-                        text = if (workout.isCompleted) "Zrobione na dziś — dotknij, aby cofnąć" else "Oznacz jako zrobione",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = if (workout.isCompleted) FontWeight.Bold else FontWeight.Normal,
-                        color = if (workout.isCompleted) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface
-                    )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (workout.videoUri != null) {
+                        Button(
+                            onClick = {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW).apply {
+                                        setDataAndType(Uri.parse(workout.videoUri), "video/*")
+                                    }
+                                )
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            ButtonIcon(Icons.Filled.PlayArrow)
+                            Text("Odtwórz")
+                        }
+                    }
+                    when {
+                        workout.isCompleted -> OutlinedButton(onClick = onToggle, modifier = Modifier.weight(1f)) {
+                            Text("Cofnij zrobione")
+                        }
+                        workout.videoUri == null -> Button(onClick = onToggle, modifier = Modifier.weight(1f)) {
+                            ButtonIcon(Icons.Filled.Check)
+                            Text("Zrobione")
+                        }
+                        else -> FilledTonalButton(onClick = onToggle, modifier = Modifier.weight(1f)) {
+                            ButtonIcon(Icons.Filled.Check)
+                            Text("Zrobione")
+                        }
+                    }
                 }
             }
         }
+
+        if (next != null) {
+            Text(
+                text = "Jutro: ${next.definition.title}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
-}
-}
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -625,63 +509,55 @@ private fun StrengthWorkoutCard(
     val context = LocalContext.current
     var pickerExercise by remember { mutableStateOf<StrengthExerciseDefinition?>(null) }
     var resourcesExpanded by rememberSaveable { mutableStateOf(false) }
+    val exercises = workout.definition.exercises
+    val plannedSets = exercises.sumOf { it.sets }
+    val loggedSets = exercises.sumOf { exercise ->
+        (1..exercise.sets).count { logs.containsKey(strengthLogKey(exercise.id, it)) }
+    }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+    AppCard {
+        CardHeader(
+            title = "Siła",
+            meta = "Sesja ${workout.sessionNumber} · ${workout.definition.focus}"
+        )
+
+        StrengthPlanSwitch(
+            selectedPlanDay = workout.planDay,
+            onChooseStrengthWorkoutToday = onChooseStrengthWorkoutToday
+        )
+
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                text = workout.definition.title,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Sesja siłowa ${workout.sessionNumber} • ${workout.definition.focus}",
-                style = MaterialTheme.typography.bodyMedium,
+                text = "$loggedSets z $plannedSets serii",
+                style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            ThinProgress(progress = if (plannedSets > 0) loggedSets.toFloat() / plannedSets else 0f)
+        }
 
-            StrengthPlanSwitch(
-                selectedPlanDay = workout.planDay,
-                onChooseStrengthWorkoutToday = onChooseStrengthWorkoutToday
+        WarmupBlock()
+
+        exercises.forEach { exercise ->
+            StrengthExerciseBlock(
+                exercise = exercise,
+                logs = logs,
+                onSaveSet = onSaveSet,
+                onChange = { pickerExercise = exercise },
+                onRestore = { onRestoreExercise(exercise.slotId) }
             )
+        }
 
-            HorizontalDivider()
-
-            WarmupCard()
-
-            TextButton(onClick = { resourcesExpanded = !resourcesExpanded }) {
-                Text(if (resourcesExpanded) "Ukryj materiały dodatkowe" else "Pokaż materiały dodatkowe")
-            }
-            AnimatedVisibility(visible = resourcesExpanded) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    STRENGTH_RESOURCE_LINKS.forEach { link ->
-                        OutlinedButton(
-                            onClick = {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link.url)))
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(link.title)
-                        }
+        TextButton(onClick = { resourcesExpanded = !resourcesExpanded }) {
+            Text(if (resourcesExpanded) "Ukryj materiały dodatkowe" else "Materiały dodatkowe")
+        }
+        AnimatedVisibility(visible = resourcesExpanded) {
+            Column {
+                STRENGTH_RESOURCE_LINKS.forEach { link ->
+                    TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link.url))) }) {
+                        ButtonIcon(Icons.AutoMirrored.Filled.OpenInNew)
+                        Text(link.title)
                     }
                 }
-            }
-
-            workout.definition.exercises.forEach { exercise ->
-                StrengthExerciseCard(
-                    exercise = exercise,
-                    logs = logs,
-                    onSaveSet = onSaveSet,
-                    onChange = { pickerExercise = exercise },
-                    onRestore = { onRestoreExercise(exercise.slotId) }
-                )
             }
         }
     }
@@ -690,14 +566,15 @@ private fun StrengthWorkoutCard(
         ModalBottomSheet(onDismissRequest = { pickerExercise = null }) {
             Column(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Zmień tylko dzisiaj", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("Zamień tylko na dziś", style = MaterialTheme.typography.titleLarge)
                 Text(
-                    "Jutro wróci ćwiczenie z planu bazowego.",
+                    "Przy następnym treningu wróci ćwiczenie z planu.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(Modifier.height(4.dp))
                 exercise.choices.forEach { choice ->
                     OutlinedButton(
                         onClick = {
@@ -710,63 +587,52 @@ private fun StrengthWorkoutCard(
                         Text(choice.name)
                     }
                 }
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(16.dp))
             }
         }
     }
 }
 
 @Composable
-private fun WarmupCard() {
+private fun WarmupBlock() {
     var completed by rememberSaveable { mutableStateOf(false) }
     var expanded by rememberSaveable { mutableStateOf(true) }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text("Rozgrzewka", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    if (completed) {
-                        Text("Zrobiona", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                    }
-                }
-                if (completed) {
-                    TextButton(onClick = { expanded = !expanded }) {
-                        Text(if (expanded) "Zwiń" else "Rozwiń")
-                    }
+    InsetBlock {
+        CardHeader(
+            title = "Rozgrzewka",
+            meta = if (completed) "Zrobiona" else "${WARMUP_ROUTINE.size} ćwiczeń",
+            onClick = { expanded = !expanded },
+            trailing = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (completed) DoneMark(done = true)
+                    ExpandChevron(expanded)
                 }
             }
+        )
 
-            AnimatedVisibility(visible = expanded) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    WARMUP_ROUTINE.forEachIndexed { index, step ->
+        AnimatedVisibility(visible = expanded) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                WARMUP_ROUTINE.forEach { step ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(step.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                         Text(
-                            text = "${index + 1}. ${step.name} — ${step.prescription}",
-                            style = MaterialTheme.typography.bodySmall
+                            step.prescription,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(0.8f)
                         )
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
-                            checked = completed,
-                            onCheckedChange = { checked ->
-                                completed = checked
-                                if (checked) expanded = false
-                            }
-                        )
-                        Text(if (completed) "Rozgrzewka zakończona" else "Oznacz rozgrzewkę jako zakończoną")
-                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = completed,
+                        onCheckedChange = { checked ->
+                            completed = checked
+                            if (checked) expanded = false
+                        }
+                    )
+                    Text(if (completed) "Rozgrzewka zrobiona" else "Oznacz rozgrzewkę jako zrobioną")
                 }
             }
         }
@@ -774,84 +640,41 @@ private fun WarmupCard() {
 }
 
 @Composable
-private fun StrengthTodayPickerCard(
-    title: String,
-    description: String,
-    selectedPlanDay: Int?,
-    onChooseStrengthWorkoutToday: (Int) -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            StrengthPlanSwitch(
-                selectedPlanDay = selectedPlanDay,
-                onChooseStrengthWorkoutToday = onChooseStrengthWorkoutToday
-            )
-        }
+private fun StrengthTodayPickerCard(onChooseStrengthWorkoutToday: (Int) -> Unit) {
+    AppCard {
+        CardHeader(
+            title = "Siła",
+            meta = "Dziś bez treningu w planie. Możesz zrobić jeden jednorazowo, plan tygodnia się nie zmieni."
+        )
+        StrengthPlanSwitch(
+            selectedPlanDay = null,
+            onChooseStrengthWorkoutToday = onChooseStrengthWorkoutToday
+        )
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StrengthPlanSwitch(
     selectedPlanDay: Int?,
     onChooseStrengthWorkoutToday: (Int) -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        StrengthPlanButton(
-            label = "Zrób dziś A",
-            selected = selectedPlanDay == 1,
-            onClick = { onChooseStrengthWorkoutToday(1) },
-            modifier = Modifier.weight(1f)
-        )
-        StrengthPlanButton(
-            label = "Zrób dziś B",
-            selected = selectedPlanDay == 2,
-            onClick = { onChooseStrengthWorkoutToday(2) },
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-@Composable
-private fun StrengthPlanButton(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    if (selected) {
-        Button(onClick = onClick, modifier = modifier) {
-            Text(label)
-        }
-    } else {
-        OutlinedButton(onClick = onClick, modifier = modifier) {
-            Text(label)
+    val options = listOf(1 to "Trening A", 2 to "Trening B")
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        options.forEachIndexed { index, (planDay, label) ->
+            SegmentedButton(
+                selected = selectedPlanDay == planDay,
+                onClick = { onChooseStrengthWorkoutToday(planDay) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size)
+            ) {
+                Text(label)
+            }
         }
     }
 }
 
 @Composable
-private fun StrengthExerciseCard(
+private fun StrengthExerciseBlock(
     exercise: StrengthExerciseDefinition,
     logs: Map<String, StrengthSetLog>,
     onSaveSet: (String, Int, Double?, Int?, Int?, String?) -> Unit,
@@ -865,113 +688,79 @@ private fun StrengthExerciseCard(
     val isComplete = completedWorkingSets == exercise.sets
     var expanded by rememberSaveable(exercise.id, isComplete) { mutableStateOf(!isComplete) }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = exercise.section.uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = exercise.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+    InsetBlock {
+        CardHeader(
+            title = exercise.name,
+            meta = if (exercise.isTodayOverride) "${exercise.section} · zmienione na dziś" else exercise.section,
+            onClick = if (isComplete) {
+                { expanded = !expanded }
+            } else null,
+            trailing = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (isComplete) {
+                        DoneMark(done = true)
+                        ExpandChevron(expanded)
+                    } else {
                         Text(
-                            text = "Zrobione • $completedWorkingSets/${exercise.sets} serii",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
+                            text = "$completedWorkingSets/${exercise.sets}",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                    }
-                }
-                if (isComplete) {
-                    TextButton(onClick = { expanded = !expanded }) {
-                        Text(if (expanded) "Zwiń" else "Rozwiń")
                     }
                 }
             }
+        )
 
-            AnimatedVisibility(visible = expanded) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (exercise.isTodayOverride) {
-                        Text(
-                            text = "Zmienione na dziś",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    Text(
-                        text = buildExercisePrescription(exercise),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (exercise.notes.isNotBlank()) {
-                        Text(text = exercise.notes, style = MaterialTheme.typography.bodySmall)
-                    }
+        AnimatedVisibility(visible = expanded) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = buildExercisePrescription(exercise),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (exercise.notes.isNotBlank()) {
+                    Text(text = exercise.notes, style = MaterialTheme.typography.bodySmall)
+                }
 
+                Row {
                     if (exercise.videoUrl != null) {
-                        OutlinedButton(
-                            onClick = {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(exercise.videoUrl)))
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Zobacz technikę na YouTube")
+                        TextButton(onClick = {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(exercise.videoUrl)))
+                        }) {
+                            Text("Technika")
                         }
                     }
-
+                    TextButton(onClick = onChange) {
+                        Text(if (exercise.isTodayOverride) "Wybierz inne" else "Zamień")
+                    }
                     if (exercise.isTodayOverride) {
-                        TextButton(onClick = onRestore, modifier = Modifier.fillMaxWidth()) {
-                            Text("Przywróć z planu")
+                        TextButton(onClick = onRestore) {
+                            Text("Przywróć")
                         }
                     }
-                    TextButton(onClick = onChange, modifier = Modifier.fillMaxWidth()) {
-                        Text(if (exercise.isTodayOverride) "Wybierz inne" else "Zmień tylko dzisiaj")
-                    }
+                }
 
-                    HorizontalDivider()
-
-                    if (exercise.hasWarmupSet) {
-                        val warmupLog = logs[strengthLogKey(exercise.id, WARMUP_SET_NUMBER)]
-                        StrengthSetLogRow(
-                            exercise = exercise,
-                            setNumber = WARMUP_SET_NUMBER,
-                            log = warmupLog,
-                            onSaveSet = onSaveSet
-                        )
-                        HorizontalDivider()
-                    }
-
-                    (1..exercise.sets).forEach { setNumber ->
-                        val log = logs[strengthLogKey(exercise.id, setNumber)]
-                        StrengthSetLogRow(
-                            exercise = exercise,
-                            setNumber = setNumber,
-                            log = log,
-                            onSaveSet = onSaveSet
-                        )
-                    }
+                if (exercise.hasWarmupSet) {
+                    StrengthSetLogRow(
+                        exercise = exercise,
+                        setNumber = WARMUP_SET_NUMBER,
+                        log = logs[strengthLogKey(exercise.id, WARMUP_SET_NUMBER)],
+                        onSaveSet = onSaveSet
+                    )
+                }
+                (1..exercise.sets).forEach { setNumber ->
+                    StrengthSetLogRow(
+                        exercise = exercise,
+                        setNumber = setNumber,
+                        log = logs[strengthLogKey(exercise.id, setNumber)],
+                        onSaveSet = onSaveSet
+                    )
                 }
             }
         }
     }
 }
+
 @Composable
 private fun StrengthSetLogRow(
     exercise: StrengthExerciseDefinition,
@@ -981,7 +770,7 @@ private fun StrengthSetLogRow(
 ) {
     val exerciseId = exercise.id
     val trackingType = exercise.trackingType
-    
+
     var weightText by remember(log?.weightKg, exerciseId, setNumber) {
         mutableStateOf(log?.weightKg?.let { formatWeight(it) } ?: "")
     }
@@ -994,148 +783,148 @@ private fun StrengthSetLogRow(
     var bandText by remember(log?.bandColor, exerciseId, setNumber) {
         mutableStateOf(log?.bandColor ?: "")
     }
-    
+
     val isCompleted = log != null
+    val isWarmup = setNumber == WARMUP_SET_NUMBER
+    var confirmDelete by remember(log) { mutableStateOf(false) }
+    LaunchedEffect(confirmDelete) {
+        if (confirmDelete) {
+            delay(3_000)
+            confirmDelete = false
+        }
+    }
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = if (setNumber == WARMUP_SET_NUMBER) "Seria rozgrzewkowa" else "Seria $setNumber",
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Medium
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            when (trackingType) {
-                TrackingType.WEIGHT_AND_REPS -> {
-                    OutlinedTextField(
-                        value = weightText,
-                        onValueChange = { weightText = it },
-                        label = { Text("kg", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = repsText,
-                        onValueChange = { repsText = it },
-                        label = { Text("powt.", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                TrackingType.BAND_AND_REPS -> {
-                    OutlinedTextField(
-                        value = bandText,
-                        onValueChange = { bandText = it },
-                        label = { Text("kolor gumy", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = repsText,
-                        onValueChange = { repsText = it },
-                        label = { Text("powt.", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                TrackingType.REPS_ONLY -> {
-                    OutlinedTextField(
-                        value = repsText,
-                        onValueChange = { repsText = it },
-                        label = { Text("powt.", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                TrackingType.TIME_ONLY -> {
-                    OutlinedTextField(
-                        value = timeText,
-                        onValueChange = { timeText = it },
-                        label = { Text("czas (s)", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                TrackingType.NONE -> {
-                    // Żadnych dodatkowych pól tekstowych
-                    Spacer(Modifier.weight(1f))
-                }
-            }
-
-            if (trackingType == TrackingType.NONE) {
-                Checkbox(
-                    checked = isCompleted,
-                    onCheckedChange = { checked ->
-                        if (checked) {
-                            onSaveSet(exerciseId, setNumber, 0.0, 0, 0, null)
-                        } else {
-                            onSaveSet(exerciseId, setNumber, null, null, null, null)
-                        }
-                    }
-                )
-                Text(
-                    text = if (isCompleted) "Zrobione!" else "Zaznacz",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(modifier = Modifier.width(28.dp), contentAlignment = Alignment.Center) {
+            if (isWarmup) {
+                Icon(
+                    Icons.Filled.LocalFireDepartment,
+                    contentDescription = "Seria rozgrzewkowa",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
                 )
             } else {
-                OutlinedButton(
-                    onClick = { 
-                        val weight = weightText.replace(',', '.').trim().toDoubleOrNull()
-                        val reps = repsText.trim().toIntOrNull()
-                        val time = timeText.trim().toIntOrNull()
-                        val bandColor = bandText.trim().takeIf { it.isNotEmpty() }
-                        if (weight != null || reps != null || time != null || bandColor != null) {
-                            onSaveSet(exerciseId, setNumber, weight, reps, time, bandColor)
-                        }
-                    }
-                ) {
-                    Text(if (isCompleted) "Aktualizuj" else "Zapisz")
-                }
+                Text(
+                    text = "$setNumber",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
-        if (isCompleted) {
-            TextButton(
-                onClick = { onSaveSet(exerciseId, setNumber, null, null, null, null) }
-            ) {
-                Text("Usuń zapis")
+
+        when (trackingType) {
+            TrackingType.WEIGHT_AND_REPS -> {
+                SetField(weightText, { weightText = it }, "kg", KeyboardType.Decimal, Modifier.weight(1f))
+                SetField(repsText, { repsText = it }, "powt.", KeyboardType.Number, Modifier.weight(1f))
+            }
+            TrackingType.BAND_AND_REPS -> {
+                SetField(bandText, { bandText = it }, "guma", KeyboardType.Text, Modifier.weight(1f))
+                SetField(repsText, { repsText = it }, "powt.", KeyboardType.Number, Modifier.weight(1f))
+            }
+            TrackingType.REPS_ONLY -> {
+                SetField(repsText, { repsText = it }, "powt.", KeyboardType.Number, Modifier.weight(1f))
+            }
+            TrackingType.TIME_ONLY -> {
+                SetField(timeText, { timeText = it }, "czas (s)", KeyboardType.Number, Modifier.weight(1f))
+            }
+            TrackingType.NONE -> {
+                Text(
+                    text = if (isCompleted) "Zrobione" else "Do zrobienia",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        if (trackingType == TrackingType.NONE) {
+            Checkbox(
+                checked = isCompleted,
+                onCheckedChange = { checked ->
+                    if (checked) {
+                        onSaveSet(exerciseId, setNumber, 0.0, 0, 0, null)
+                    } else {
+                        onSaveSet(exerciseId, setNumber, null, null, null, null)
+                    }
+                }
+            )
+        } else {
+            val save = {
+                val weight = weightText.replace(',', '.').trim().toDoubleOrNull()
+                val reps = repsText.trim().toIntOrNull()
+                val time = timeText.trim().toIntOrNull()
+                val bandColor = bandText.trim().takeIf { it.isNotEmpty() }
+                if (weight != null || reps != null || time != null || bandColor != null) {
+                    onSaveSet(exerciseId, setNumber, weight, reps, time, bandColor)
+                }
+            }
+            if (isCompleted) {
+                FilledIconButton(onClick = save) {
+                    Icon(Icons.Filled.Check, contentDescription = "Aktualizuj serię")
+                }
+                // Usuwanie na dwa tapnięcia: × → czerwony kosz → usuń. Kosz wraca do × po 3 s.
+                IconButton(
+                    onClick = {
+                        if (confirmDelete) onSaveSet(exerciseId, setNumber, null, null, null, null)
+                        else confirmDelete = true
+                    },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        if (confirmDelete) Icons.Filled.Delete else Icons.Filled.Close,
+                        contentDescription = if (confirmDelete) "Potwierdź usunięcie serii" else "Usuń zapis serii",
+                        tint = if (confirmDelete) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(if (confirmDelete) 22.dp else 18.dp)
+                    )
+                }
+            } else {
+                OutlinedIconButton(onClick = save) {
+                    Icon(Icons.Filled.Check, contentDescription = "Zapisz serię")
+                }
+                // Miejsce na „usuń”, żeby pola nie skakały po zapisie serii.
+                Spacer(Modifier.size(32.dp))
             }
         }
     }
 }
 
 @Composable
+private fun SetField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    keyboardType: KeyboardType,
+    modifier: Modifier
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface
+        ),
+        modifier = modifier
+    )
+}
+
+@Composable
 private fun NoTrainingCard(title: String, description: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+    AppCard {
+        CardHeader(title = title, meta = description)
     }
+}
+
+@Composable
+private fun ButtonIcon(icon: ImageVector) {
+    Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+    Spacer(Modifier.width(8.dp))
 }
 
 private fun buildExercisePrescription(exercise: StrengthExerciseDefinition): String {
@@ -1163,14 +952,14 @@ private fun OnboardingContent(onStart: (LocalDate) -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Witaj w Mobility Tracker!",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
+            text = "Mobility Tracker",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.fillMaxWidth()
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(8.dp))
         Text(
-            text = "84 sesje mobilności wykonywane po kolei, maksymalnie jedna dziennie, oraz plan siłowy 2x w tygodniu.",
+            text = "84 sesje mobilności po kolei, najwyżej jedna dziennie, i trening siłowy A/B dwa razy w tygodniu.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

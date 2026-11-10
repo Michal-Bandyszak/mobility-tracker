@@ -15,21 +15,26 @@ private val LightColorScheme = lightColorScheme(
     onPrimary = OnPrimary,
     secondary = Secondary,
     onSecondary = OnSecondary,
-    tertiary = Tertiary,
-    onTertiary = OnTertiary,
+    tertiary = Primary,
+    onTertiary = OnPrimary,
     primaryContainer = PrimaryContainer,
     onPrimaryContainer = OnPrimaryContainer,
     secondaryContainer = SecondaryContainer,
     onSecondaryContainer = OnSecondaryContainer,
-    tertiaryContainer = TertiaryContainer,
-    onTertiaryContainer = OnTertiaryContainer,
+    tertiaryContainer = PrimaryContainer,
+    onTertiaryContainer = OnPrimaryContainer,
     background = Background,
     surface = Surface,
     surfaceVariant = SurfaceVariant,
+    surfaceContainer = Surface,
+    surfaceContainerLow = Surface,
+    surfaceContainerHigh = Surface,
+    surfaceContainerHighest = SurfaceVariant,
     onBackground = OnBackground,
     onSurface = OnBackground,
     onSurfaceVariant = OnSurfaceVariant,
-    outline = Outline
+    outline = Outline,
+    outlineVariant = OutlineVariant
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -37,21 +42,26 @@ private val DarkColorScheme = darkColorScheme(
     onPrimary = OnPrimaryDark,
     secondary = SecondaryDark,
     onSecondary = OnSecondaryDark,
-    tertiary = TertiaryDark,
-    onTertiary = OnTertiaryDark,
+    tertiary = PrimaryDark,
+    onTertiary = OnPrimaryDark,
     primaryContainer = PrimaryContainerDark,
     onPrimaryContainer = OnPrimaryContainerDark,
     secondaryContainer = SecondaryContainerDark,
     onSecondaryContainer = OnSecondaryContainerDark,
-    tertiaryContainer = TertiaryContainerDark,
-    onTertiaryContainer = OnTertiaryContainerDark,
+    tertiaryContainer = PrimaryContainerDark,
+    onTertiaryContainer = OnPrimaryContainerDark,
     background = BackgroundDark,
     surface = SurfaceDark,
     surfaceVariant = SurfaceVariantDark,
+    surfaceContainer = SurfaceDark,
+    surfaceContainerLow = SurfaceDark,
+    surfaceContainerHigh = SurfaceDark,
+    surfaceContainerHighest = SurfaceVariantDark,
     onBackground = OnBackgroundDark,
     onSurface = OnBackgroundDark,
     onSurfaceVariant = OnSurfaceVariantDark,
-    outline = OutlineDark
+    outline = OutlineDark,
+    outlineVariant = OutlineVariantDark
 )
 
 @Composable
@@ -72,6 +82,7 @@ fun MobilityTrackerTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = Shapes,
         content = content
     )
 }
